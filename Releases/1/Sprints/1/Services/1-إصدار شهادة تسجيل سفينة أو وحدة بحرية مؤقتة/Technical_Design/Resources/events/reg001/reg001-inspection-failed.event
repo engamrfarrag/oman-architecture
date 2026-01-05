@@ -1,0 +1,78 @@
+{
+  "key": "reg001-inspection-failed",
+  "category": "event",
+  "name": "Vessel Inspection Failed",
+  "description": "Vessel inspection failed - requirements not matched. المعاينة غير مطابقة",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "inspectionId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "inspectionId",
+      "type": "string"
+    },
+    {
+      "name": "vesselImoNumber",
+      "type": "string"
+    },
+    {
+      "name": "inspectionType",
+      "type": "string"
+    },
+    {
+      "name": "inspectorName",
+      "type": "string"
+    },
+    {
+      "name": "inspectionDate",
+      "type": "string"
+    },
+    {
+      "name": "failureCode",
+      "type": "string",
+      "description": "SAFETY_EQUIPMENT_DEFICIENT, HULL_DAMAGE, ENGINE_FAILURE, DOCUMENTATION_MISMATCH, DIMENSIONS_MISMATCH"
+    },
+    {
+      "name": "failureReasonArabic",
+      "type": "string",
+      "description": "سبب عدم المطابقة"
+    },
+    {
+      "name": "failureReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "deficiencies",
+      "type": "string",
+      "description": "JSON array of deficiency details"
+    },
+    {
+      "name": "reportDocumentUrl",
+      "type": "string"
+    },
+    {
+      "name": "canReinspect",
+      "type": "boolean"
+    },
+    {
+      "name": "reinspectionRequiredBy",
+      "type": "string"
+    }
+  ]
+}

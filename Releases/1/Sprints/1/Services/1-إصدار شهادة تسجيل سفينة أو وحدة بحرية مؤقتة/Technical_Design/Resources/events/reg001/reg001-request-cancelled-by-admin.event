@@ -1,0 +1,72 @@
+{
+  "key": "reg001-request-cancelled-by-admin",
+  "category": "event",
+  "name": "Registration Request Cancelled by Admin",
+  "description": "Administrator/employee has cancelled the registration request. إلغاء الطلب من قبل الموظف",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "civilId",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonCode",
+      "type": "string",
+      "description": "FRAUDULENT_APPLICATION, PROHIBITED_VESSEL, SANCTIONS_MATCH, DUPLICATE_REGISTRATION, ADMINISTRATIVE_DECISION"
+    },
+    {
+      "name": "cancellationReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "cancelledByEmployeeId",
+      "type": "string"
+    },
+    {
+      "name": "cancelledByEmployeeName",
+      "type": "string"
+    },
+    {
+      "name": "cancellationTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "requestStatusAtCancellation",
+      "type": "string"
+    },
+    {
+      "name": "administrativeReferenceNumber",
+      "type": "string"
+    },
+    {
+      "name": "appealAllowed",
+      "type": "boolean"
+    },
+    {
+      "name": "appealDeadline",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://www.flowable.org/processdef">
+
+  <process id="sampleProcess" name="Sample Process v5" isExecutable="true">
+    <startEvent id="startEvent" name="Start"/>
+    <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="userTask"/>
+    
+    <userTask id="userTask" name="User Task" flowable:assignee="${assignee}">
+      <documentation>This is a sample user task</documentation>
+      <extensionElements>
+        <flowable:formProperty id="customerId" name="Customer ID" type="string" required="true"/>
+        <flowable:formProperty id="orderNumber" name="Order Number" type="string" required="true"/>
+        <flowable:formProperty id="amount" name="Amount" type="double" required="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow2" sourceRef="userTask" targetRef="sendKafkaEvent"/>
+    
+    <!-- Using custom Java delegate to send Kafka events with proper payload serialization -->
+    <serviceTask id="sendKafkaEvent" name="Send Event to Kafka" 
+                 flowable:delegateExpression="${kafkaEventSenderDelegate}">
+      <documentation>Sends process variables as JSON payload to Kafka topic</documentation>
+    </serviceTask>
+    <sequenceFlow id="flow3" sourceRef="sendKafkaEvent" targetRef="endEvent"/>
+    
+    <endEvent id="endEvent" name="End"/>
+  </process>
+
+</definitions>

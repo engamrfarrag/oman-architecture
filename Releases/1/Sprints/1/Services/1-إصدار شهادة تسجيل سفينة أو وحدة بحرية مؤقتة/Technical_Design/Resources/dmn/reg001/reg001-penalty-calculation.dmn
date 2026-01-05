@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-penalty-calculation-definitions"
+             name="REG-001 Penalty Calculation"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: Late Registration Penalty Calculation Decision Table
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - حساب غرامات التأخير
+       
+       Purpose: Calculate penalty for late vessel registration
+       Business Rule: Registration must be submitted within 30 days of construction completion
+                     or vessel acquisition. Penalty applies after 30 days.
+       
+       Reference: MTCIT-REG-001, Section 5.1.3 (إحضار الوحدة للتسجيل خلال 30 يوماً)
+       
+       Penalty Structure:
+         - No penalty: 0-30 days
+         - First tier: 31-60 days (minor penalty)
+         - Second tier: 61-90 days (moderate penalty)
+         - Third tier: 91-180 days (significant penalty)
+         - Fourth tier: >180 days (maximum penalty)
+       
+       Inputs:
+         - daysLate: number (days since construction completion/acquisition)
+         - baseFee: number (base registration fee in OMR)
+         - vesselCategory: string (vessel type)
+       
+       Outputs:
+         - penaltyApplies: boolean (true if penalty applies)
+         - penaltyPercentage: number (penalty as percentage of base fee)
+         - penaltyAmount: number (calculated penalty in OMR)
+         - penaltyReason: string (reason for penalty)
+         - penaltyReasonAr: string (reason in Arabic)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-penalty-calculation" name="Late Registration Penalty Calculation">
+    <decisionTable id="penaltyCalculationDecisionTable" hitPolicy="FIRST">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_daysLate" label="Days Since Acquisition/Completion">
+        <inputExpression id="daysLateExpr" typeRef="number">
+          <text>daysLate</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_baseFee" label="Base Fee (OMR)">
+        <inputExpression id="baseFeeExpr" typeRef="number">
+          <text>baseFee</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_vesselCategory" label="Vessel Category">
+        <inputExpression id="vesselCategoryExpr" typeRef="string">
+          <text>vesselCategory</text>
+        </inputExpression>
+        <inputValues>
+          <text>"CARGO","TANKER","CONTAINER","BULK_CARRIER","PASSENGER","FISHING","NAVAL","RESEARCH","TUGBOAT","OFFSHORE","YACHT","FERRY","BOAT","OTHER"</text>
+        </inputValues>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_penaltyApplies" name="penaltyApplies" label="Penalty Applies" typeRef="boolean"/>
+      <output id="output_penaltyPercentage" name="penaltyPercentage" label="Penalty %" typeRef="number"/>
+      <output id="output_penaltyAmount" name="penaltyAmount" label="Penalty Amount (OMR)" typeRef="number"/>
+      <output id="output_penaltyReasonAr" name="penaltyReasonAr" label="Penalty Reason (Arabic)" typeRef="string"/>
+      <output id="output_penaltyReasonEn" name="penaltyReasonEn" label="Penalty Reason (English)" typeRef="string"/>
+      <output id="output_penaltyTier" name="penaltyTier" label="Penalty Tier" typeRef="string"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: On Time (0-30 days) - No Penalty
+           التسجيل في الوقت المحدد (0-30 يوم) - لا غرامة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_no_penalty">
+        <description>Registration within 30 days - no penalty</description>
+        <inputEntry id="rule_no_penalty_in_daysLate"><text>&lt;= 30</text></inputEntry>
+        <inputEntry id="rule_no_penalty_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_no_penalty_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_no_penalty_out_penaltyApplies"><text>false</text></outputEntry>
+        <outputEntry id="rule_no_penalty_out_penaltyPercentage"><text>0</text></outputEntry>
+        <outputEntry id="rule_no_penalty_out_penaltyAmount"><text>0</text></outputEntry>
+        <outputEntry id="rule_no_penalty_out_penaltyReasonAr"><text>"لا توجد غرامة - التسجيل خلال المهلة المحددة (30 يوم)"</text></outputEntry>
+        <outputEntry id="rule_no_penalty_out_penaltyReasonEn"><text>"No penalty - registration within allowed period (30 days)"</text></outputEntry>
+        <outputEntry id="rule_no_penalty_out_penaltyTier"><text>"NONE"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 2: Fishing Vessels - Exemption from penalty (special category)
+           سفن الصيد - إعفاء من الغرامة (فئة خاصة)
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fishing_exemption">
+        <description>Fishing vessels have reduced penalty rate</description>
+        <inputEntry id="rule_fishing_exemption_in_daysLate"><text>&gt; 30</text></inputEntry>
+        <inputEntry id="rule_fishing_exemption_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_exemption_in_vesselCategory"><text>"FISHING"</text></inputEntry>
+        <outputEntry id="rule_fishing_exemption_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_fishing_exemption_out_penaltyPercentage"><text>5</text></outputEntry>
+        <outputEntry id="rule_fishing_exemption_out_penaltyAmount"><text>baseFee * 0.05</text></outputEntry>
+        <outputEntry id="rule_fishing_exemption_out_penaltyReasonAr"><text>"غرامة مخفضة لسفن الصيد - 5% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_fishing_exemption_out_penaltyReasonEn"><text>"Reduced penalty for fishing vessels - 5% of base fee"</text></outputEntry>
+        <outputEntry id="rule_fishing_exemption_out_penaltyTier"><text>"FISHING_REDUCED"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3: First Tier (31-60 days) - 10% Penalty
+           المستوى الأول (31-60 يوم) - غرامة 10%
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tier1_penalty">
+        <description>31-60 days late - 10% penalty</description>
+        <inputEntry id="rule_tier1_penalty_in_daysLate"><text>(30..60]</text></inputEntry>
+        <inputEntry id="rule_tier1_penalty_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_tier1_penalty_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_tier1_penalty_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_tier1_penalty_out_penaltyPercentage"><text>10</text></outputEntry>
+        <outputEntry id="rule_tier1_penalty_out_penaltyAmount"><text>baseFee * 0.10</text></outputEntry>
+        <outputEntry id="rule_tier1_penalty_out_penaltyReasonAr"><text>"غرامة المستوى الأول - تأخير 31-60 يوم - 10% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_tier1_penalty_out_penaltyReasonEn"><text>"First tier penalty - 31-60 days late - 10% of base fee"</text></outputEntry>
+        <outputEntry id="rule_tier1_penalty_out_penaltyTier"><text>"TIER_1"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 4: Second Tier (61-90 days) - 25% Penalty
+           المستوى الثاني (61-90 يوم) - غرامة 25%
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tier2_penalty">
+        <description>61-90 days late - 25% penalty</description>
+        <inputEntry id="rule_tier2_penalty_in_daysLate"><text>(60..90]</text></inputEntry>
+        <inputEntry id="rule_tier2_penalty_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_tier2_penalty_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_tier2_penalty_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_tier2_penalty_out_penaltyPercentage"><text>25</text></outputEntry>
+        <outputEntry id="rule_tier2_penalty_out_penaltyAmount"><text>baseFee * 0.25</text></outputEntry>
+        <outputEntry id="rule_tier2_penalty_out_penaltyReasonAr"><text>"غرامة المستوى الثاني - تأخير 61-90 يوم - 25% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_tier2_penalty_out_penaltyReasonEn"><text>"Second tier penalty - 61-90 days late - 25% of base fee"</text></outputEntry>
+        <outputEntry id="rule_tier2_penalty_out_penaltyTier"><text>"TIER_2"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5: Third Tier (91-180 days) - 50% Penalty
+           المستوى الثالث (91-180 يوم) - غرامة 50%
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tier3_penalty">
+        <description>91-180 days late - 50% penalty</description>
+        <inputEntry id="rule_tier3_penalty_in_daysLate"><text>(90..180]</text></inputEntry>
+        <inputEntry id="rule_tier3_penalty_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_tier3_penalty_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_tier3_penalty_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_tier3_penalty_out_penaltyPercentage"><text>50</text></outputEntry>
+        <outputEntry id="rule_tier3_penalty_out_penaltyAmount"><text>baseFee * 0.50</text></outputEntry>
+        <outputEntry id="rule_tier3_penalty_out_penaltyReasonAr"><text>"غرامة المستوى الثالث - تأخير 91-180 يوم - 50% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_tier3_penalty_out_penaltyReasonEn"><text>"Third tier penalty - 91-180 days late - 50% of base fee"</text></outputEntry>
+        <outputEntry id="rule_tier3_penalty_out_penaltyTier"><text>"TIER_3"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 6: Fourth Tier (181-365 days) - 75% Penalty
+           المستوى الرابع (181-365 يوم) - غرامة 75%
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tier4_penalty">
+        <description>181-365 days late - 75% penalty</description>
+        <inputEntry id="rule_tier4_penalty_in_daysLate"><text>(180..365]</text></inputEntry>
+        <inputEntry id="rule_tier4_penalty_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_tier4_penalty_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_tier4_penalty_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_tier4_penalty_out_penaltyPercentage"><text>75</text></outputEntry>
+        <outputEntry id="rule_tier4_penalty_out_penaltyAmount"><text>baseFee * 0.75</text></outputEntry>
+        <outputEntry id="rule_tier4_penalty_out_penaltyReasonAr"><text>"غرامة المستوى الرابع - تأخير 181-365 يوم - 75% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_tier4_penalty_out_penaltyReasonEn"><text>"Fourth tier penalty - 181-365 days late - 75% of base fee"</text></outputEntry>
+        <outputEntry id="rule_tier4_penalty_out_penaltyTier"><text>"TIER_4"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7: Maximum Tier (>365 days) - 100% Penalty
+           المستوى الأقصى (أكثر من 365 يوم) - غرامة 100%
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_max_penalty">
+        <description>Over 1 year late - 100% penalty (maximum)</description>
+        <inputEntry id="rule_max_penalty_in_daysLate"><text>&gt; 365</text></inputEntry>
+        <inputEntry id="rule_max_penalty_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_max_penalty_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_max_penalty_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_max_penalty_out_penaltyPercentage"><text>100</text></outputEntry>
+        <outputEntry id="rule_max_penalty_out_penaltyAmount"><text>baseFee * 1.00</text></outputEntry>
+        <outputEntry id="rule_max_penalty_out_penaltyReasonAr"><text>"غرامة الحد الأقصى - تأخير أكثر من سنة - 100% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_max_penalty_out_penaltyReasonEn"><text>"Maximum penalty - over 1 year late - 100% of base fee"</text></outputEntry>
+        <outputEntry id="rule_max_penalty_out_penaltyTier"><text>"MAXIMUM"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 8: Research Vessels - Reduced Penalty
+           سفن الأبحاث - غرامة مخفضة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_research_reduced">
+        <description>Research vessels have reduced penalty</description>
+        <inputEntry id="rule_research_reduced_in_daysLate"><text>&gt; 30</text></inputEntry>
+        <inputEntry id="rule_research_reduced_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_research_reduced_in_vesselCategory"><text>"RESEARCH"</text></inputEntry>
+        <outputEntry id="rule_research_reduced_out_penaltyApplies"><text>true</text></outputEntry>
+        <outputEntry id="rule_research_reduced_out_penaltyPercentage"><text>5</text></outputEntry>
+        <outputEntry id="rule_research_reduced_out_penaltyAmount"><text>baseFee * 0.05</text></outputEntry>
+        <outputEntry id="rule_research_reduced_out_penaltyReasonAr"><text>"غرامة مخفضة لسفن الأبحاث - 5% من الرسوم الأساسية"</text></outputEntry>
+        <outputEntry id="rule_research_reduced_out_penaltyReasonEn"><text>"Reduced penalty for research vessels - 5% of base fee"</text></outputEntry>
+        <outputEntry id="rule_research_reduced_out_penaltyTier"><text>"RESEARCH_REDUCED"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9: Naval Vessels - Government Exemption
+           السفن الحربية - إعفاء حكومي
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_naval_exemption">
+        <description>Naval vessels exempt from penalty</description>
+        <inputEntry id="rule_naval_exemption_in_daysLate"><text>-</text></inputEntry>
+        <inputEntry id="rule_naval_exemption_in_baseFee"><text>-</text></inputEntry>
+        <inputEntry id="rule_naval_exemption_in_vesselCategory"><text>"NAVAL"</text></inputEntry>
+        <outputEntry id="rule_naval_exemption_out_penaltyApplies"><text>false</text></outputEntry>
+        <outputEntry id="rule_naval_exemption_out_penaltyPercentage"><text>0</text></outputEntry>
+        <outputEntry id="rule_naval_exemption_out_penaltyAmount"><text>0</text></outputEntry>
+        <outputEntry id="rule_naval_exemption_out_penaltyReasonAr"><text>"إعفاء حكومي - السفن الحربية معفاة من الغرامات"</text></outputEntry>
+        <outputEntry id="rule_naval_exemption_out_penaltyReasonEn"><text>"Government exemption - naval vessels exempt from penalties"</text></outputEntry>
+        <outputEntry id="rule_naval_exemption_out_penaltyTier"><text>"EXEMPT"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

@@ -1,0 +1,55 @@
+{
+  "key": "reg001-invoice-cancelled",
+  "category": "event",
+  "name": "Invoice Cancelled",
+  "description": "Invoice has been cancelled/voided. إلغاء الفاتورة",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    },
+    {
+      "name": "civilId",
+      "type": "string"
+    },
+    {
+      "name": "totalAmount",
+      "type": "double"
+    },
+    {
+      "name": "cancellationReasonCode",
+      "type": "string",
+      "description": "REQUEST_CANCELLED, AMOUNT_RECALCULATED, DUPLICATE_INVOICE, ADMIN_CANCELLED"
+    },
+    {
+      "name": "cancellationReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "cancelledBy",
+      "type": "string"
+    },
+    {
+      "name": "cancellationTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "replacementInvoiceNumber",
+      "type": "string",
+      "description": "New invoice number if recalculated"
+    }
+  ]
+}

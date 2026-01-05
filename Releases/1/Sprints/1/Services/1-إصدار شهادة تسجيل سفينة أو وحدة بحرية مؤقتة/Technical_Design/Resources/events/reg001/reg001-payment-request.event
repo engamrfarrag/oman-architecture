@@ -1,0 +1,49 @@
+{
+  "key": "reg001-payment-request",
+  "name": "REG-001 Payment Request",
+  "description": "طلب الدفع - Request to redirect user to Bank Muscat ePayment gateway",
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    },
+    {
+      "name": "applicantId",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": "double"
+    },
+    {
+      "name": "currency",
+      "type": "string"
+    },
+    {
+      "name": "description",
+      "type": "string"
+    },
+    {
+      "name": "callbackUrl",
+      "type": "string"
+    },
+    {
+      "name": "expiryTimestamp",
+      "type": "string"
+    }
+  ]
+}

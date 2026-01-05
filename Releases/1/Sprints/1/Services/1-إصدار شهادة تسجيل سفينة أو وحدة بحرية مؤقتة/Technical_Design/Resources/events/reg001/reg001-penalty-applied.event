@@ -1,0 +1,63 @@
+{
+  "key": "reg001-penalty-applied",
+  "category": "event",
+  "name": "Late Registration Penalty Applied",
+  "description": "Event when penalty is applied for late registration completion. Step: تسجيل غرامة على المستفيد في حالة مرور فترة زمنية طبقا للإعدادات",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "temporaryCertificateNumber",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "penaltyType",
+      "type": "string",
+      "description": "LATE_REGISTRATION, LATE_PERMANENT_CONVERSION"
+    },
+    {
+      "name": "penaltyAmount",
+      "type": "double"
+    },
+    {
+      "name": "currency",
+      "type": "string"
+    },
+    {
+      "name": "daysLate",
+      "type": "integer"
+    },
+    {
+      "name": "penaltyReason",
+      "type": "string",
+      "description": "مخالفة اللوائح والقوانين"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    },
+    {
+      "name": "dueDate",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

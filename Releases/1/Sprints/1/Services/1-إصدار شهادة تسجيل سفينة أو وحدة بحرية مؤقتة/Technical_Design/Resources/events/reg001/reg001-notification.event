@@ -1,0 +1,59 @@
+{
+  "key": "reg001-notification",
+  "category": "event",
+  "name": "REG-001 Notification Event",
+  "description": "Notification event for SMS/Email notifications throughout the registration process. إشعارات SMS/Email",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "notificationType",
+      "type": "string",
+      "description": "PKI_REJECTED, CR_INVALID, ACTIVITY_INVALID, MAFWR_APPROVED, MAFWR_REJECTED, INSPECTION_MATCHED, INSPECTION_NOT_MATCHED, CERTIFICATE_ISSUED, PERMANENT_REGISTRATION_REMINDER, PENALTY_APPLIED"
+    },
+    {
+      "name": "recipientCivilId",
+      "type": "string"
+    },
+    {
+      "name": "recipientName",
+      "type": "string"
+    },
+    {
+      "name": "recipientEmail",
+      "type": "string"
+    },
+    {
+      "name": "recipientMobile",
+      "type": "string"
+    },
+    {
+      "name": "messageArabic",
+      "type": "string"
+    },
+    {
+      "name": "messageEnglish",
+      "type": "string"
+    },
+    {
+      "name": "channels",
+      "type": "string",
+      "description": "SMS, EMAIL, BOTH"
+    },
+    {
+      "name": "referenceNumber",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

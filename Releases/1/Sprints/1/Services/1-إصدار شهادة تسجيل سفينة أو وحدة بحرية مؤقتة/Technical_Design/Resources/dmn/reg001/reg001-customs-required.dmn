@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-customs-required-definitions"
+             name="REG-001 Customs Clearance Required"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: Customs Clearance (Bayan) Required Decision Table
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - متطلبات التخليص الجمركي (نظام بيان)
+       
+       Purpose: Determine if Customs Clearance via Bayan system is required for vessel registration
+       
+       Business Rules:
+         1. All imported vessels require customs clearance via Bayan system
+         2. Flag change vessels (previously registered in another country) require customs
+         3. Vessels purchased from abroad require import declaration
+         4. Locally built vessels (new build in Oman) are exempt from customs
+         5. Vessels already registered in Oman (ownership transfer) are exempt
+       
+       Reference: MTCIT-REG-001, Integration with Bayan Customs System
+                  REG-001-IT-08: نظام التخليص الجمركي (بيان)
+       
+       Inputs:
+         - acquisitionType: string (NEW_BUILD, PURCHASE, FLAG_CHANGE)
+         - isImported: boolean (vessel imported from abroad)
+         - previousFlagState: string (previous flag state for flag change)
+         - buildCountry: string (country where vessel was built)
+         - isLocalBuild: boolean (vessel built in Oman)
+       
+       Outputs:
+         - customsRequired: boolean (true if customs clearance needed)
+         - clearanceType: string (type of customs clearance required)
+         - clearanceTypeAr: string (clearance type in Arabic)
+         - requiredDocuments: string (list of required customs documents)
+         - requiredDocumentsAr: string (documents list in Arabic)
+         - bayanDeclarationType: string (Bayan declaration type code)
+         - integrationEndpoint: string (Bayan API endpoint to call)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-customs-required" name="Customs Clearance Required Decision">
+    <decisionTable id="customsRequiredDecisionTable" hitPolicy="FIRST">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_acquisitionType" label="Acquisition Type">
+        <inputExpression id="acquisitionTypeExpr" typeRef="string">
+          <text>acquisitionType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"NEW_BUILD","PURCHASE","FLAG_CHANGE"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_isImported" label="Is Imported">
+        <inputExpression id="isImportedExpr" typeRef="boolean">
+          <text>isImported</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_previousFlagState" label="Previous Flag State">
+        <inputExpression id="previousFlagStateExpr" typeRef="string">
+          <text>previousFlagState</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_buildCountry" label="Build Country">
+        <inputExpression id="buildCountryExpr" typeRef="string">
+          <text>buildCountry</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_isLocalBuild" label="Local Build (Oman)">
+        <inputExpression id="isLocalBuildExpr" typeRef="boolean">
+          <text>isLocalBuild</text>
+        </inputExpression>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_customsRequired" name="customsRequired" label="Customs Required" typeRef="boolean"/>
+      <output id="output_clearanceType" name="clearanceType" label="Clearance Type" typeRef="string"/>
+      <output id="output_clearanceTypeAr" name="clearanceTypeAr" label="Clearance Type (Arabic)" typeRef="string"/>
+      <output id="output_requiredDocuments" name="requiredDocuments" label="Required Documents" typeRef="string"/>
+      <output id="output_requiredDocumentsAr" name="requiredDocumentsAr" label="Required Documents (Arabic)" typeRef="string"/>
+      <output id="output_bayanDeclarationType" name="bayanDeclarationType" label="Bayan Declaration Type" typeRef="string"/>
+      <output id="output_integrationEndpoint" name="integrationEndpoint" label="Integration Endpoint" typeRef="string"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: Flag Change - Full Import Declaration Required
+           تغيير العلم - إقرار استيراد كامل مطلوب
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_flag_change">
+        <description>Flag change requires full customs clearance</description>
+        <inputEntry id="rule_flag_change_in_acquisitionType"><text>"FLAG_CHANGE"</text></inputEntry>
+        <inputEntry id="rule_flag_change_in_isImported"><text>-</text></inputEntry>
+        <inputEntry id="rule_flag_change_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_flag_change_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_flag_change_in_isLocalBuild"><text>-</text></inputEntry>
+        <outputEntry id="rule_flag_change_out_customsRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_flag_change_out_clearanceType"><text>"FLAG_CHANGE_IMPORT"</text></outputEntry>
+        <outputEntry id="rule_flag_change_out_clearanceTypeAr"><text>"استيراد تغيير العلم"</text></outputEntry>
+        <outputEntry id="rule_flag_change_out_requiredDocuments"><text>"Bill of Sale, Deletion Certificate, Import Declaration, Customs Valuation Certificate"</text></outputEntry>
+        <outputEntry id="rule_flag_change_out_requiredDocumentsAr"><text>"عقد البيع، شهادة شطب العلم السابق، إقرار الاستيراد، شهادة التقييم الجمركي"</text></outputEntry>
+        <outputEntry id="rule_flag_change_out_bayanDeclarationType"><text>"IM4"</text></outputEntry>
+        <outputEntry id="rule_flag_change_out_integrationEndpoint"><text>"/api/bayan/declaration/import"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 2: Purchase from Abroad - Import Declaration
+           شراء من الخارج - إقرار استيراد
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_purchase_imported">
+        <description>Imported purchased vessels require customs clearance</description>
+        <inputEntry id="rule_purchase_imported_in_acquisitionType"><text>"PURCHASE"</text></inputEntry>
+        <inputEntry id="rule_purchase_imported_in_isImported"><text>true</text></inputEntry>
+        <inputEntry id="rule_purchase_imported_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_purchase_imported_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_purchase_imported_in_isLocalBuild"><text>-</text></inputEntry>
+        <outputEntry id="rule_purchase_imported_out_customsRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_purchase_imported_out_clearanceType"><text>"VESSEL_IMPORT"</text></outputEntry>
+        <outputEntry id="rule_purchase_imported_out_clearanceTypeAr"><text>"استيراد وحدة بحرية"</text></outputEntry>
+        <outputEntry id="rule_purchase_imported_out_requiredDocuments"><text>"Bill of Sale, Invoice, Import Declaration, Customs Valuation Certificate, Builder Certificate"</text></outputEntry>
+        <outputEntry id="rule_purchase_imported_out_requiredDocumentsAr"><text>"عقد البيع، الفاتورة، إقرار الاستيراد، شهادة التقييم الجمركي، شهادة الباني"</text></outputEntry>
+        <outputEntry id="rule_purchase_imported_out_bayanDeclarationType"><text>"IM4"</text></outputEntry>
+        <outputEntry id="rule_purchase_imported_out_integrationEndpoint"><text>"/api/bayan/declaration/import"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3: New Build Abroad - Import Declaration
+           بناء جديد في الخارج - إقرار استيراد
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_new_build_abroad">
+        <description>New vessels built abroad require customs clearance</description>
+        <inputEntry id="rule_new_build_abroad_in_acquisitionType"><text>"NEW_BUILD"</text></inputEntry>
+        <inputEntry id="rule_new_build_abroad_in_isImported"><text>true</text></inputEntry>
+        <inputEntry id="rule_new_build_abroad_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_new_build_abroad_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_new_build_abroad_in_isLocalBuild"><text>false</text></inputEntry>
+        <outputEntry id="rule_new_build_abroad_out_customsRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_new_build_abroad_out_clearanceType"><text>"NEW_BUILD_IMPORT"</text></outputEntry>
+        <outputEntry id="rule_new_build_abroad_out_clearanceTypeAr"><text>"استيراد بناء جديد"</text></outputEntry>
+        <outputEntry id="rule_new_build_abroad_out_requiredDocuments"><text>"Builder Certificate, Construction Contract, Invoice, Import Declaration"</text></outputEntry>
+        <outputEntry id="rule_new_build_abroad_out_requiredDocumentsAr"><text>"شهادة الباني، عقد البناء، الفاتورة، إقرار الاستيراد"</text></outputEntry>
+        <outputEntry id="rule_new_build_abroad_out_bayanDeclarationType"><text>"IM4"</text></outputEntry>
+        <outputEntry id="rule_new_build_abroad_out_integrationEndpoint"><text>"/api/bayan/declaration/import"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 4: New Build in Non-Oman Country (Explicit)
+           بناء جديد في دولة غير عمان (صريح)
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_new_build_foreign_country">
+        <description>New vessels built in foreign country require customs</description>
+        <inputEntry id="rule_new_build_foreign_country_in_acquisitionType"><text>"NEW_BUILD"</text></inputEntry>
+        <inputEntry id="rule_new_build_foreign_country_in_isImported"><text>-</text></inputEntry>
+        <inputEntry id="rule_new_build_foreign_country_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_new_build_foreign_country_in_buildCountry"><text>not("OM","OMAN","عمان")</text></inputEntry>
+        <inputEntry id="rule_new_build_foreign_country_in_isLocalBuild"><text>false</text></inputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_customsRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_clearanceType"><text>"NEW_BUILD_IMPORT"</text></outputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_clearanceTypeAr"><text>"استيراد بناء جديد"</text></outputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_requiredDocuments"><text>"Builder Certificate, Construction Contract, Invoice, Import Declaration"</text></outputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_requiredDocumentsAr"><text>"شهادة الباني، عقد البناء، الفاتورة، إقرار الاستيراد"</text></outputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_bayanDeclarationType"><text>"IM4"</text></outputEntry>
+        <outputEntry id="rule_new_build_foreign_country_out_integrationEndpoint"><text>"/api/bayan/declaration/import"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5: Local New Build in Oman - No Customs Required
+           بناء جديد محلي في عمان - لا يتطلب تخليص جمركي
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_local_new_build">
+        <description>Locally built vessels in Oman are exempt from customs</description>
+        <inputEntry id="rule_local_new_build_in_acquisitionType"><text>"NEW_BUILD"</text></inputEntry>
+        <inputEntry id="rule_local_new_build_in_isImported"><text>false</text></inputEntry>
+        <inputEntry id="rule_local_new_build_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_local_new_build_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_local_new_build_in_isLocalBuild"><text>true</text></inputEntry>
+        <outputEntry id="rule_local_new_build_out_customsRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_local_new_build_out_clearanceType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_local_new_build_out_clearanceTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_local_new_build_out_requiredDocuments"><text>"Not applicable - local build"</text></outputEntry>
+        <outputEntry id="rule_local_new_build_out_requiredDocumentsAr"><text>"غير مطلوب - بناء محلي"</text></outputEntry>
+        <outputEntry id="rule_local_new_build_out_bayanDeclarationType"><text>""</text></outputEntry>
+        <outputEntry id="rule_local_new_build_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 6: Local Purchase (Domestic Transfer) - No Customs Required
+           شراء محلي (نقل ملكية داخلي) - لا يتطلب تخليص جمركي
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_local_purchase">
+        <description>Domestic vessel purchase/transfer exempt from customs</description>
+        <inputEntry id="rule_local_purchase_in_acquisitionType"><text>"PURCHASE"</text></inputEntry>
+        <inputEntry id="rule_local_purchase_in_isImported"><text>false</text></inputEntry>
+        <inputEntry id="rule_local_purchase_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_local_purchase_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_local_purchase_in_isLocalBuild"><text>-</text></inputEntry>
+        <outputEntry id="rule_local_purchase_out_customsRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_local_purchase_out_clearanceType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_local_purchase_out_clearanceTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_local_purchase_out_requiredDocuments"><text>"Not applicable - domestic transfer"</text></outputEntry>
+        <outputEntry id="rule_local_purchase_out_requiredDocumentsAr"><text>"غير مطلوب - نقل ملكية داخلي"</text></outputEntry>
+        <outputEntry id="rule_local_purchase_out_bayanDeclarationType"><text>""</text></outputEntry>
+        <outputEntry id="rule_local_purchase_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7: GCC Flag Change - Simplified Customs (GCC Agreement)
+           تغيير علم دول مجلس التعاون - تخليص مبسط (اتفاقية الخليج)
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_gcc_flag_change">
+        <description>GCC flag change has simplified customs process</description>
+        <inputEntry id="rule_gcc_flag_change_in_acquisitionType"><text>"FLAG_CHANGE"</text></inputEntry>
+        <inputEntry id="rule_gcc_flag_change_in_isImported"><text>-</text></inputEntry>
+        <inputEntry id="rule_gcc_flag_change_in_previousFlagState"><text>"AE","SA","KW","BH","QA"</text></inputEntry>
+        <inputEntry id="rule_gcc_flag_change_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_gcc_flag_change_in_isLocalBuild"><text>-</text></inputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_customsRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_clearanceType"><text>"GCC_TRANSFER"</text></outputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_clearanceTypeAr"><text>"نقل ضمن دول مجلس التعاون"</text></outputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_requiredDocuments"><text>"Bill of Sale, Deletion Certificate, GCC Transfer Declaration"</text></outputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_requiredDocumentsAr"><text>"عقد البيع، شهادة شطب العلم، إقرار نقل دول المجلس"</text></outputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_bayanDeclarationType"><text>"GCC_TR"</text></outputEntry>
+        <outputEntry id="rule_gcc_flag_change_out_integrationEndpoint"><text>"/api/bayan/declaration/gcc-transfer"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 8: Temporary Import (Charter/Bareboat) - Temporary Admission
+           استيراد مؤقت (إيجار/بيرفوت) - قبول مؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_temporary_import">
+        <description>Temporary import for bareboat charter</description>
+        <inputEntry id="rule_temporary_import_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_temporary_import_in_isImported"><text>true</text></inputEntry>
+        <inputEntry id="rule_temporary_import_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_temporary_import_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_temporary_import_in_isLocalBuild"><text>-</text></inputEntry>
+        <outputEntry id="rule_temporary_import_out_customsRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_temporary_import_out_clearanceType"><text>"TEMPORARY_ADMISSION"</text></outputEntry>
+        <outputEntry id="rule_temporary_import_out_clearanceTypeAr"><text>"قبول مؤقت"</text></outputEntry>
+        <outputEntry id="rule_temporary_import_out_requiredDocuments"><text>"Charter Agreement, Temporary Admission Declaration, Guarantee/Bond"</text></outputEntry>
+        <outputEntry id="rule_temporary_import_out_requiredDocumentsAr"><text>"عقد الإيجار، إقرار القبول المؤقت، الضمان/الكفالة"</text></outputEntry>
+        <outputEntry id="rule_temporary_import_out_bayanDeclarationType"><text>"IM5"</text></outputEntry>
+        <outputEntry id="rule_temporary_import_out_integrationEndpoint"><text>"/api/bayan/declaration/temporary"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9: Default - No Customs Required
+           القاعدة الافتراضية - لا يتطلب تخليص جمركي
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_no_customs">
+        <description>Default - no customs required</description>
+        <inputEntry id="rule_default_no_customs_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_customs_in_isImported"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_customs_in_previousFlagState"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_customs_in_buildCountry"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_customs_in_isLocalBuild"><text>-</text></inputEntry>
+        <outputEntry id="rule_default_no_customs_out_customsRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_default_no_customs_out_clearanceType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_default_no_customs_out_clearanceTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_default_no_customs_out_requiredDocuments"><text>"Not applicable"</text></outputEntry>
+        <outputEntry id="rule_default_no_customs_out_requiredDocumentsAr"><text>"غير مطلوب"</text></outputEntry>
+        <outputEntry id="rule_default_no_customs_out_bayanDeclarationType"><text>""</text></outputEntry>
+        <outputEntry id="rule_default_no_customs_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

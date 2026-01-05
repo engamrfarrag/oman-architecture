@@ -1,0 +1,23 @@
+{
+  "key": "inboundEvent",
+  "name": "Inbound Event",
+  "inboundChannelKeys": ["inboundChannel"],
+  "payload": [
+    {
+      "name": "customerId",
+      "type": "string"
+    },
+    {
+      "name": "orderNumber",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": "double"
+    },
+    {
+      "name": "eventType",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "key": "reg001-activity-validation-inactive",
+  "category": "event",
+  "name": "Maritime Activity Inactive",
+  "description": "Rejection response from Invest Easy - maritime activity is inactive or not authorized. النشاط البحري غير ساري",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "activityCode",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "activityCode",
+      "type": "string"
+    },
+    {
+      "name": "inactiveReasonCode",
+      "type": "string",
+      "description": "EXPIRED, NOT_FOUND, SUSPENDED, VESSEL_TYPE_NOT_ALLOWED"
+    },
+    {
+      "name": "inactiveReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "inactiveReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "validationTimestamp",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "key": "reg001-documents-submitted",
+  "name": "REG-001 Documents Submitted",
+  "description": "تم تقديم المستندات - User has submitted required documents",
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "applicantId",
+      "type": "string"
+    },
+    {
+      "name": "documentIds",
+      "type": "collection"
+    },
+    {
+      "name": "documentTypes",
+      "type": "collection"
+    },
+    {
+      "name": "submittedAt",
+      "type": "string"
+    },
+    {
+      "name": "isComplete",
+      "type": "boolean"
+    }
+  ]
+}

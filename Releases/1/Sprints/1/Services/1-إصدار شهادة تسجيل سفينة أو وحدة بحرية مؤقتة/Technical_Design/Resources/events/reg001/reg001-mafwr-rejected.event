@@ -1,0 +1,65 @@
+{
+  "key": "reg001-mafwr-rejected",
+  "category": "event",
+  "name": "MAFWR Fishing Vessel Rejected",
+  "description": "Rejection from وزارة الثروة الزراعية والسمكية وموارد المياه for fishing vessel registration. رفض الوزارة",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselType",
+      "type": "string"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "rejectionCode",
+      "type": "string",
+      "description": "QUOTA_EXCEEDED, VESSEL_NOT_COMPLIANT, ZONE_RESTRICTED, DOCUMENTATION_INCOMPLETE"
+    },
+    {
+      "name": "rejectionReasonArabic",
+      "type": "string",
+      "description": "سبب الرفض"
+    },
+    {
+      "name": "rejectionReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "rejectionDate",
+      "type": "string"
+    },
+    {
+      "name": "rejectedBy",
+      "type": "string"
+    },
+    {
+      "name": "canReapply",
+      "type": "boolean"
+    },
+    {
+      "name": "reapplyAfterDate",
+      "type": "string"
+    }
+  ]
+}

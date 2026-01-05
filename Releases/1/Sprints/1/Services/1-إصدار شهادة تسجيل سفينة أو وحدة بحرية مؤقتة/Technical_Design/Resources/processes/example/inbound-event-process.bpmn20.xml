@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://www.flowable.org/processdef">
+
+  <!-- Process started by inbound Kafka event -->
+  <process id="inboundEventProcess" name="Inbound Event Process" isExecutable="true">
+    
+    <!-- Event Start - triggered by inbound event from Kafka -->
+    <startEvent id="eventStart" name="Event Start">
+      <extensionElements>
+        <flowable:eventType>inboundEvent</flowable:eventType>
+        <flowable:eventCorrelationParameter name="customerId" value="${customerId}"/>
+      </extensionElements>
+      <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" 
+                       eventType="inboundEvent"/>
+    </startEvent>
+    <sequenceFlow id="flow1" sourceRef="eventStart" targetRef="logReceivedEvent"/>
+    
+    <!-- Script task to log the received event data -->
+    <scriptTask id="logReceivedEvent" name="Log Received Event" 
+                scriptFormat="groovy">
+      <script>
+        println "=== Inbound Event Received ==="
+        println "Customer ID: ${customerId}"
+        println "Order Number: ${orderNumber}"
+        println "Amount: ${amount}"
+        println "Event Type: ${eventType}"
+        println "==============================="
+      </script>
+    </scriptTask>
+    <sequenceFlow id="flow2" sourceRef="logReceivedEvent" targetRef="processEventGateway"/>
+    
+    <!-- Exclusive gateway to route based on event type -->
+    <exclusiveGateway id="processEventGateway" name="Process Event Gateway"/>
+    <sequenceFlow id="flowNewOrder" sourceRef="processEventGateway" targetRef="handleNewOrder">
+      <conditionExpression xsi:type="tFormalExpression">${eventType == 'NEW_ORDER'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowUpdateOrder" sourceRef="processEventGateway" targetRef="handleUpdateOrder">
+      <conditionExpression xsi:type="tFormalExpression">${eventType == 'UPDATE_ORDER'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowDefault" sourceRef="processEventGateway" targetRef="handleDefaultEvent"/>
+    
+    <!-- Handle new order -->
+    <serviceTask id="handleNewOrder" name="Handle New Order"
+                 flowable:expression="${execution.setVariable('processedAs', 'NEW_ORDER')}"/>
+    <sequenceFlow id="flow3" sourceRef="handleNewOrder" targetRef="endEvent"/>
+    
+    <!-- Handle update order -->
+    <serviceTask id="handleUpdateOrder" name="Handle Update Order"
+                 flowable:expression="${execution.setVariable('processedAs', 'UPDATE_ORDER')}"/>
+    <sequenceFlow id="flow4" sourceRef="handleUpdateOrder" targetRef="endEvent"/>
+    
+    <!-- Handle default/unknown event -->
+    <serviceTask id="handleDefaultEvent" name="Handle Default Event"
+                 flowable:expression="${execution.setVariable('processedAs', 'DEFAULT')}"/>
+    <sequenceFlow id="flow5" sourceRef="handleDefaultEvent" targetRef="endEvent"/>
+    
+    <endEvent id="endEvent" name="End"/>
+  </process>
+
+</definitions>

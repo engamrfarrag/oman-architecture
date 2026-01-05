@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-mafwr-required-definitions"
+             name="REG-001 MAFWR Approval Required"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: MAFWR (Ministry of Agriculture, Fisheries and Water Resources) Approval Required
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - متطلبات موافقة وزارة الثروة الزراعية والسمكية
+       
+       Purpose: Determine if MAFWR fishing license/approval is required for vessel registration
+       
+       Business Rules:
+         1. All fishing vessels require MAFWR license (رخصة الصيد)
+         2. Vessels with fishing activity type require MAFWR approval
+         3. Research vessels conducting fisheries research may require MAFWR coordination
+         4. Aquaculture vessels require MAFWR license
+       
+       Reference: MTCIT-REG-001, Integration with MAFWR System
+       
+       Inputs:
+         - vesselCategory: string (vessel type classification)
+         - activityType: string (vessel activity classification)
+         - hasFishingEquipment: boolean (vessel equipped for fishing)
+         - isFisheriesResearch: boolean (research vessel for fisheries)
+       
+       Outputs:
+         - mafwrRequired: boolean (true if MAFWR approval needed)
+         - approvalType: string (type of MAFWR approval required)
+         - approvalTypeAr: string (approval type in Arabic)
+         - requiredDocuments: string (list of required MAFWR documents)
+         - requiredDocumentsAr: string (documents list in Arabic)
+         - integrationEndpoint: string (MAFWR API endpoint to call)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-mafwr-required" name="MAFWR Approval Required Decision">
+    <decisionTable id="mafwrRequiredDecisionTable" hitPolicy="FIRST">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_vesselCategory" label="Vessel Category">
+        <inputExpression id="vesselCategoryExpr" typeRef="string">
+          <text>vesselCategory</text>
+        </inputExpression>
+        <inputValues>
+          <text>"CARGO","TANKER","CONTAINER","BULK_CARRIER","PASSENGER","FISHING","NAVAL","RESEARCH","TUGBOAT","OFFSHORE","YACHT","FERRY","BOAT","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_activityType" label="Activity Type">
+        <inputExpression id="activityTypeExpr" typeRef="string">
+          <text>activityType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"COMMERCIAL","FISHING","TOURISM","SERVICE","PRIVATE","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_hasFishingEquipment" label="Has Fishing Equipment">
+        <inputExpression id="hasFishingEquipmentExpr" typeRef="boolean">
+          <text>hasFishingEquipment</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_isFisheriesResearch" label="Fisheries Research">
+        <inputExpression id="isFisheriesResearchExpr" typeRef="boolean">
+          <text>isFisheriesResearch</text>
+        </inputExpression>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_mafwrRequired" name="mafwrRequired" label="MAFWR Required" typeRef="boolean"/>
+      <output id="output_approvalType" name="approvalType" label="Approval Type" typeRef="string"/>
+      <output id="output_approvalTypeAr" name="approvalTypeAr" label="Approval Type (Arabic)" typeRef="string"/>
+      <output id="output_requiredDocuments" name="requiredDocuments" label="Required Documents" typeRef="string"/>
+      <output id="output_requiredDocumentsAr" name="requiredDocumentsAr" label="Required Documents (Arabic)" typeRef="string"/>
+      <output id="output_integrationEndpoint" name="integrationEndpoint" label="Integration Endpoint" typeRef="string"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: Fishing Vessel Category - Full Fishing License Required
+           فئة سفن الصيد - رخصة صيد كاملة مطلوبة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fishing_vessel">
+        <description>Fishing vessels require full MAFWR fishing license</description>
+        <inputEntry id="rule_fishing_vessel_in_vesselCategory"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_fishing_vessel_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_vessel_in_hasFishingEquipment"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_vessel_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_fishing_vessel_out_mafwrRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_fishing_vessel_out_approvalType"><text>"FISHING_LICENSE"</text></outputEntry>
+        <outputEntry id="rule_fishing_vessel_out_approvalTypeAr"><text>"رخصة صيد"</text></outputEntry>
+        <outputEntry id="rule_fishing_vessel_out_requiredDocuments"><text>"Fishing License, Vessel Registration with MAFWR, Crew Fishing Cards"</text></outputEntry>
+        <outputEntry id="rule_fishing_vessel_out_requiredDocumentsAr"><text>"رخصة صيد، تسجيل الوحدة لدى الوزارة، بطاقات صيد الطاقم"</text></outputEntry>
+        <outputEntry id="rule_fishing_vessel_out_integrationEndpoint"><text>"/api/mafwr/fishing-license/verify"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 2: Fishing Activity Type - Full Fishing License Required
+           نوع نشاط الصيد - رخصة صيد كاملة مطلوبة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fishing_activity">
+        <description>Any vessel with fishing activity requires MAFWR license</description>
+        <inputEntry id="rule_fishing_activity_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_activity_in_activityType"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_fishing_activity_in_hasFishingEquipment"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_activity_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_fishing_activity_out_mafwrRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_fishing_activity_out_approvalType"><text>"FISHING_LICENSE"</text></outputEntry>
+        <outputEntry id="rule_fishing_activity_out_approvalTypeAr"><text>"رخصة صيد"</text></outputEntry>
+        <outputEntry id="rule_fishing_activity_out_requiredDocuments"><text>"Fishing License, Vessel Registration with MAFWR"</text></outputEntry>
+        <outputEntry id="rule_fishing_activity_out_requiredDocumentsAr"><text>"رخصة صيد، تسجيل الوحدة لدى الوزارة"</text></outputEntry>
+        <outputEntry id="rule_fishing_activity_out_integrationEndpoint"><text>"/api/mafwr/fishing-license/verify"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3: Vessel with Fishing Equipment - Equipment Permit
+           وحدة مجهزة بمعدات صيد - تصريح المعدات
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fishing_equipment">
+        <description>Vessels with fishing equipment require equipment permit</description>
+        <inputEntry id="rule_fishing_equipment_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_equipment_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_equipment_in_hasFishingEquipment"><text>true</text></inputEntry>
+        <inputEntry id="rule_fishing_equipment_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_fishing_equipment_out_mafwrRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_fishing_equipment_out_approvalType"><text>"FISHING_EQUIPMENT_PERMIT"</text></outputEntry>
+        <outputEntry id="rule_fishing_equipment_out_approvalTypeAr"><text>"تصريح معدات الصيد"</text></outputEntry>
+        <outputEntry id="rule_fishing_equipment_out_requiredDocuments"><text>"Fishing Equipment Declaration, Equipment Permit"</text></outputEntry>
+        <outputEntry id="rule_fishing_equipment_out_requiredDocumentsAr"><text>"إقرار معدات الصيد، تصريح المعدات"</text></outputEntry>
+        <outputEntry id="rule_fishing_equipment_out_integrationEndpoint"><text>"/api/mafwr/equipment-permit/verify"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 4: Fisheries Research Vessel - Research Coordination
+           سفن أبحاث الثروة السمكية - تنسيق البحوث
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fisheries_research">
+        <description>Fisheries research vessels require MAFWR coordination</description>
+        <inputEntry id="rule_fisheries_research_in_vesselCategory"><text>"RESEARCH"</text></inputEntry>
+        <inputEntry id="rule_fisheries_research_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_fisheries_research_in_hasFishingEquipment"><text>-</text></inputEntry>
+        <inputEntry id="rule_fisheries_research_in_isFisheriesResearch"><text>true</text></inputEntry>
+        <outputEntry id="rule_fisheries_research_out_mafwrRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_fisheries_research_out_approvalType"><text>"RESEARCH_COORDINATION"</text></outputEntry>
+        <outputEntry id="rule_fisheries_research_out_approvalTypeAr"><text>"تنسيق بحوث الثروة السمكية"</text></outputEntry>
+        <outputEntry id="rule_fisheries_research_out_requiredDocuments"><text>"Research Permit, MAFWR Coordination Letter, Research Plan"</text></outputEntry>
+        <outputEntry id="rule_fisheries_research_out_requiredDocumentsAr"><text>"تصريح البحث، خطاب تنسيق الوزارة، خطة البحث"</text></outputEntry>
+        <outputEntry id="rule_fisheries_research_out_integrationEndpoint"><text>"/api/mafwr/research/coordinate"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5: Boat with Fishing Activity - Small Vessel Fishing Permit
+           قوارب بنشاط صيد - تصريح صيد الوحدات الصغيرة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_boat_fishing">
+        <description>Small boats with fishing activity require small vessel permit</description>
+        <inputEntry id="rule_boat_fishing_in_vesselCategory"><text>"BOAT"</text></inputEntry>
+        <inputEntry id="rule_boat_fishing_in_activityType"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_boat_fishing_in_hasFishingEquipment"><text>-</text></inputEntry>
+        <inputEntry id="rule_boat_fishing_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_boat_fishing_out_mafwrRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_boat_fishing_out_approvalType"><text>"SMALL_VESSEL_FISHING_PERMIT"</text></outputEntry>
+        <outputEntry id="rule_boat_fishing_out_approvalTypeAr"><text>"تصريح صيد الوحدات الصغيرة"</text></outputEntry>
+        <outputEntry id="rule_boat_fishing_out_requiredDocuments"><text>"Small Vessel Fishing Permit, Fisher ID Card"</text></outputEntry>
+        <outputEntry id="rule_boat_fishing_out_requiredDocumentsAr"><text>"تصريح صيد الوحدات الصغيرة، بطاقة هوية الصياد"</text></outputEntry>
+        <outputEntry id="rule_boat_fishing_out_integrationEndpoint"><text>"/api/mafwr/small-vessel-permit/verify"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 6: Commercial Cargo/Tanker - No MAFWR Required
+           سفن الشحن/الناقلات التجارية - لا تتطلب موافقة الوزارة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_commercial_no_mafwr">
+        <description>Commercial cargo vessels do not require MAFWR</description>
+        <inputEntry id="rule_commercial_no_mafwr_in_vesselCategory"><text>"CARGO","TANKER","CONTAINER","BULK_CARRIER"</text></inputEntry>
+        <inputEntry id="rule_commercial_no_mafwr_in_activityType"><text>"COMMERCIAL"</text></inputEntry>
+        <inputEntry id="rule_commercial_no_mafwr_in_hasFishingEquipment"><text>false</text></inputEntry>
+        <inputEntry id="rule_commercial_no_mafwr_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_commercial_no_mafwr_out_mafwrRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_commercial_no_mafwr_out_approvalType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_commercial_no_mafwr_out_approvalTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_commercial_no_mafwr_out_requiredDocuments"><text>"Not applicable"</text></outputEntry>
+        <outputEntry id="rule_commercial_no_mafwr_out_requiredDocumentsAr"><text>"غير مطلوب"</text></outputEntry>
+        <outputEntry id="rule_commercial_no_mafwr_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7: Passenger/Ferry Vessels - No MAFWR Required
+           سفن الركاب/العبارات - لا تتطلب موافقة الوزارة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_passenger_no_mafwr">
+        <description>Passenger vessels do not require MAFWR</description>
+        <inputEntry id="rule_passenger_no_mafwr_in_vesselCategory"><text>"PASSENGER","FERRY"</text></inputEntry>
+        <inputEntry id="rule_passenger_no_mafwr_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_no_mafwr_in_hasFishingEquipment"><text>false</text></inputEntry>
+        <inputEntry id="rule_passenger_no_mafwr_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_passenger_no_mafwr_out_mafwrRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_passenger_no_mafwr_out_approvalType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_passenger_no_mafwr_out_approvalTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_passenger_no_mafwr_out_requiredDocuments"><text>"Not applicable"</text></outputEntry>
+        <outputEntry id="rule_passenger_no_mafwr_out_requiredDocumentsAr"><text>"غير مطلوب"</text></outputEntry>
+        <outputEntry id="rule_passenger_no_mafwr_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 8: Tourism Yacht - No MAFWR Required (unless fishing equipment)
+           يخوت سياحية - لا تتطلب موافقة الوزارة (إلا إذا مجهزة بمعدات صيد)
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tourism_yacht_no_mafwr">
+        <description>Tourism yachts without fishing equipment do not require MAFWR</description>
+        <inputEntry id="rule_tourism_yacht_no_mafwr_in_vesselCategory"><text>"YACHT"</text></inputEntry>
+        <inputEntry id="rule_tourism_yacht_no_mafwr_in_activityType"><text>"TOURISM","PRIVATE"</text></inputEntry>
+        <inputEntry id="rule_tourism_yacht_no_mafwr_in_hasFishingEquipment"><text>false</text></inputEntry>
+        <inputEntry id="rule_tourism_yacht_no_mafwr_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_tourism_yacht_no_mafwr_out_mafwrRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_tourism_yacht_no_mafwr_out_approvalType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_tourism_yacht_no_mafwr_out_approvalTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_tourism_yacht_no_mafwr_out_requiredDocuments"><text>"Not applicable"</text></outputEntry>
+        <outputEntry id="rule_tourism_yacht_no_mafwr_out_requiredDocumentsAr"><text>"غير مطلوب"</text></outputEntry>
+        <outputEntry id="rule_tourism_yacht_no_mafwr_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9: Service Vessels (Tugboat/Offshore) - No MAFWR Required
+           سفن الخدمة (زوارق السحب/الإمداد البحري) - لا تتطلب موافقة الوزارة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_service_no_mafwr">
+        <description>Service vessels do not require MAFWR</description>
+        <inputEntry id="rule_service_no_mafwr_in_vesselCategory"><text>"TUGBOAT","OFFSHORE"</text></inputEntry>
+        <inputEntry id="rule_service_no_mafwr_in_activityType"><text>"SERVICE"</text></inputEntry>
+        <inputEntry id="rule_service_no_mafwr_in_hasFishingEquipment"><text>false</text></inputEntry>
+        <inputEntry id="rule_service_no_mafwr_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_service_no_mafwr_out_mafwrRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_service_no_mafwr_out_approvalType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_service_no_mafwr_out_approvalTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_service_no_mafwr_out_requiredDocuments"><text>"Not applicable"</text></outputEntry>
+        <outputEntry id="rule_service_no_mafwr_out_requiredDocumentsAr"><text>"غير مطلوب"</text></outputEntry>
+        <outputEntry id="rule_service_no_mafwr_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 10: Default - No MAFWR Required
+           القاعدة الافتراضية - لا تتطلب موافقة الوزارة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_no_mafwr">
+        <description>Default - no MAFWR approval required</description>
+        <inputEntry id="rule_default_no_mafwr_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_mafwr_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_mafwr_in_hasFishingEquipment"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_mafwr_in_isFisheriesResearch"><text>-</text></inputEntry>
+        <outputEntry id="rule_default_no_mafwr_out_mafwrRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_default_no_mafwr_out_approvalType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_default_no_mafwr_out_approvalTypeAr"><text>"لا يتطلب"</text></outputEntry>
+        <outputEntry id="rule_default_no_mafwr_out_requiredDocuments"><text>"Not applicable"</text></outputEntry>
+        <outputEntry id="rule_default_no_mafwr_out_requiredDocumentsAr"><text>"غير مطلوب"</text></outputEntry>
+        <outputEntry id="rule_default_no_mafwr_out_integrationEndpoint"><text>""</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

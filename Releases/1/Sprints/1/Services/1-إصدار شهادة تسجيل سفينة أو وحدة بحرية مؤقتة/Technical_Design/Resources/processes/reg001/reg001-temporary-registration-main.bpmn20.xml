@@ -1,0 +1,1107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://mtcit.gov.om/reg001"
+             id="reg001-temporary-registration-definitions"
+             name="REG-001 Temporary Vessel Registration">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       MTCIT-REG-001: إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة
+       Issuance of Temporary Certificate of Registry
+       
+       Purpose: Enable vessel owner/agent to temporarily register a maritime unit in Oman
+                to obtain a valid registration certificate pending permanent registration.
+       
+       Stakeholders:
+         - Applicant (المستفيد): Vessel Owner or Agent
+         - MTCIT Maritime Registration Department (قسم التسجيل)
+         - ROP (شرطة عمان السلطانية): PKI Authentication
+         - Oman Business Platform (منصة عمان للأعمال): CR/Activity Verification
+         - MAFWR (وزارة الثروة الزراعية): Fishing Vessel Approval
+         - Classification Societies (هيئات التصنيف): Technical Inspections
+         - Bank Muscat: Payment Gateway
+         - Bayan Customs (نظام بيان): Import/Clearance Documentation
+       
+       Reference: sprint1.docx Section 5.1
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <!-- ╔═══════════════════════════════════════════════════════════════════════════════════════════╗
+       ║  SIGNAL DEFINITIONS                                                                        ║
+       ╚═══════════════════════════════════════════════════════════════════════════════════════════╝ -->
+  <signal id="sig-payment-completed" name="PaymentCompleted" flowable:scope="processInstance"/>
+  <signal id="sig-inspection-completed" name="InspectionCompleted" flowable:scope="processInstance"/>
+  <signal id="sig-mafwr-response" name="MAFWRResponse" flowable:scope="processInstance"/>
+  <signal id="sig-bayan-cleared" name="BayanCleared" flowable:scope="processInstance"/>
+
+  <!-- ╔═══════════════════════════════════════════════════════════════════════════════════════════╗
+       ║  ERROR DEFINITIONS                                                                         ║
+       ╚═══════════════════════════════════════════════════════════════════════════════════════════╝ -->
+  <error id="err-pki-failed" name="PKI Authentication Failed" errorCode="ERR_PKI_001"/>
+  <error id="err-cr-invalid" name="Commercial Registry Invalid" errorCode="ERR_CR_001"/>
+  <error id="err-activity-invalid" name="Activity Not Valid" errorCode="ERR_ACT_001"/>
+  <error id="err-vessel-prohibited" name="Vessel Prohibited" errorCode="ERR_VES_001"/>
+  <error id="err-mafwr-rejected" name="MAFWR Rejected" errorCode="ERR_MAF_001"/>
+  <error id="err-inspection-failed" name="Inspection Failed" errorCode="ERR_INS_001"/>
+  <error id="err-payment-failed" name="Payment Failed" errorCode="ERR_PAY_001"/>
+
+  <!-- ╔═══════════════════════════════════════════════════════════════════════════════════════════╗
+       ║  MAIN PROCESS: REG-001 Temporary Vessel Registration                                       ║
+       ╚═══════════════════════════════════════════════════════════════════════════════════════════╝ -->
+  <process id="reg001-temporary-registration" name="إصدار شهادة تسجيل مؤقتة للسفينة" isExecutable="true">
+
+    <documentation>
+      إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة
+      MTCIT-REG-001: Issuance of Temporary Certificate of Registry
+      
+      This process enables vessel owners to temporarily register maritime units
+      in Oman, obtaining a valid registration certificate until permanent 
+      registration requirements are fulfilled.
+    </documentation>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         LANE: Applicant (المستفيد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <laneSet id="laneSet_reg001">
+      <lane id="lane_applicant" name="Applicant (المستفيد)">
+        <flowNodeRef>startEvent</flowNodeRef>
+        <flowNodeRef>ut_selectService</flowNodeRef>
+        <flowNodeRef>ut_selectBeneficiaryType</flowNodeRef>
+        <flowNodeRef>ut_enterVesselData</flowNodeRef>
+        <flowNodeRef>ut_uploadDocuments</flowNodeRef>
+        <flowNodeRef>ut_selectVesselName</flowNodeRef>
+        <flowNodeRef>ut_paymentConfirmation</flowNodeRef>
+      </lane>
+      <lane id="lane_system" name="System (المنظومة)">
+        <flowNodeRef>st_createDraft</flowNodeRef>
+        <flowNodeRef>st_pkiVerification</flowNodeRef>
+        <flowNodeRef>st_verifyCR</flowNodeRef>
+        <flowNodeRef>st_verifyActivity</flowNodeRef>
+        <flowNodeRef>st_validateVesselAge</flowNodeRef>
+        <flowNodeRef>st_checkVesselProhibition</flowNodeRef>
+        <flowNodeRef>st_calculateFees</flowNodeRef>
+        <flowNodeRef>st_reserveName</flowNodeRef>
+        <flowNodeRef>st_initiatePayment</flowNodeRef>
+        <flowNodeRef>st_issueCertificate</flowNodeRef>
+        <flowNodeRef>st_sendNotification</flowNodeRef>
+        <flowNodeRef>st_sendReminders</flowNodeRef>
+      </lane>
+      <lane id="lane_mafwr" name="MAFWR (وزارة الثروة الزراعية)">
+        <flowNodeRef>st_requestMAFWRApproval</flowNodeRef>
+        <flowNodeRef>timer_mafwrResponse</flowNodeRef>
+      </lane>
+      <lane id="lane_inspection" name="Inspection (المعاينة)">
+        <flowNodeRef>call_inspectionProcess</flowNodeRef>
+      </lane>
+      <lane id="lane_bayan" name="Bayan Customs (نظام بيان)">
+        <flowNodeRef>st_requestBayanClearance</flowNodeRef>
+        <flowNodeRef>timer_bayanResponse</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         EVENT SUBPROCESSES: Lifecycle Management (cancellations)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <subProcess id="esp_cancelByUser" name="إلغاء الطلب من المستفيد" triggeredByEvent="true">
+      <startEvent id="se_cancelByUser" name="طلب ملغي من المستفيد" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-request-cancelled-by-user</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="requestId" target="requestId"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-request-cancelled-by-user"/>
+      </startEvent>
+      <sequenceFlow id="flow_cancelByUser_to_status" sourceRef="se_cancelByUser" targetRef="st_sendCancelledByUserStatus"/>
+      <serviceTask id="st_sendCancelledByUserStatus" name="تحديث حالة الإلغاء" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'CANCELLED'}" target="status"/>
+          <flowable:eventOutParameter sourceExpression="${'USER'}" target="cancelledBy"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_cancelByUser_to_end" sourceRef="st_sendCancelledByUserStatus" targetRef="end_cancelByUser"/>
+      <endEvent id="end_cancelByUser" name="إنهاء بسبب الإلغاء">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <subProcess id="esp_cancelBySystem" name="إلغاء الطلب من النظام" triggeredByEvent="true">
+      <startEvent id="se_cancelBySystem" name="طلب ملغي من النظام" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-request-cancelled-by-system</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="requestId" target="requestId"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-request-cancelled-by-system"/>
+      </startEvent>
+      <sequenceFlow id="flow_cancelBySystem_to_status" sourceRef="se_cancelBySystem" targetRef="st_sendCancelledBySystemStatus"/>
+      <serviceTask id="st_sendCancelledBySystemStatus" name="تحديث حالة الإلغاء" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'CANCELLED'}" target="status"/>
+          <flowable:eventOutParameter sourceExpression="${'SYSTEM'}" target="cancelledBy"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_cancelBySystem_to_end" sourceRef="st_sendCancelledBySystemStatus" targetRef="end_cancelBySystem"/>
+      <endEvent id="end_cancelBySystem" name="إنهاء بسبب الإلغاء">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <subProcess id="esp_cancelByAdmin" name="إلغاء الطلب إدارياً" triggeredByEvent="true">
+      <startEvent id="se_cancelByAdmin" name="طلب ملغي إدارياً" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-request-cancelled-by-admin</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="requestId" target="requestId"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-request-cancelled-by-admin"/>
+      </startEvent>
+      <sequenceFlow id="flow_cancelByAdmin_to_status" sourceRef="se_cancelByAdmin" targetRef="st_sendCancelledByAdminStatus"/>
+      <serviceTask id="st_sendCancelledByAdminStatus" name="تحديث حالة الإلغاء" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'CANCELLED'}" target="status"/>
+          <flowable:eventOutParameter sourceExpression="${'ADMIN'}" target="cancelledBy"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_cancelByAdmin_to_end" sourceRef="st_sendCancelledByAdminStatus" targetRef="end_cancelByAdmin"/>
+      <endEvent id="end_cancelByAdmin" name="إنهاء بسبب الإلغاء">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         EVENT SUBPROCESSES: Negative external responses (interrupting)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <subProcess id="esp_crInvalid" name="السجل التجاري غير ساري" triggeredByEvent="true">
+      <startEvent id="se_crInvalid" name="رد رفض السجل التجاري" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-cr-validation-invalid</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="invalidReasonCode" target="rejectionReasonCode"/>
+          <flowable:eventInParameter source="invalidReasonArabic" target="rejectionReasonAr"/>
+          <flowable:eventInParameter source="invalidReasonEnglish" target="rejectionReasonEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-cr-validation-invalid"/>
+      </startEvent>
+      <sequenceFlow id="flow_crInvalid_to_reject" sourceRef="se_crInvalid" targetRef="st_sendRejectionExternal"/>
+      <serviceTask id="st_sendRejectionExternal" name="إرسال إشعار الرفض" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'REJECTED'}" target="status"/>
+          <flowable:eventOutParameter source="rejectionReasonCode" target="reasonCode"/>
+          <flowable:eventOutParameter source="rejectionReasonAr" target="reasonArabic"/>
+          <flowable:eventOutParameter source="rejectionReasonEn" target="reasonEnglish"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_crInvalid_to_end" sourceRef="st_sendRejectionExternal" targetRef="end_rejectByCR"/>
+      <endEvent id="end_rejectByCR" name="إنهاء بالرفض">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <subProcess id="esp_activityInactive" name="النشاط البحري غير ساري" triggeredByEvent="true">
+      <startEvent id="se_activityInactive" name="رد رفض النشاط" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-activity-validation-inactive</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="inactiveReasonCode" target="rejectionReasonCode"/>
+          <flowable:eventInParameter source="inactiveReasonArabic" target="rejectionReasonAr"/>
+          <flowable:eventInParameter source="inactiveReasonEnglish" target="rejectionReasonEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-activity-validation-inactive"/>
+      </startEvent>
+      <sequenceFlow id="flow_activityInactive_to_reject" sourceRef="se_activityInactive" targetRef="st_sendRejectionActivity"/>
+      <serviceTask id="st_sendRejectionActivity" name="إرسال إشعار الرفض" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'REJECTED'}" target="status"/>
+          <flowable:eventOutParameter source="rejectionReasonCode" target="reasonCode"/>
+          <flowable:eventOutParameter source="rejectionReasonAr" target="reasonArabic"/>
+          <flowable:eventOutParameter source="rejectionReasonEn" target="reasonEnglish"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_activityInactive_to_end" sourceRef="st_sendRejectionActivity" targetRef="end_rejectByActivity"/>
+      <endEvent id="end_rejectByActivity" name="إنهاء بالرفض">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <subProcess id="esp_mafwrRejected" name="رفض وزارة الثروة الزراعية" triggeredByEvent="true">
+      <startEvent id="se_mafwrRejected" name="رد رفض موافقة الصيد" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-mafwr-rejected</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="rejectionReasonCode" target="rejectionReasonCode"/>
+          <flowable:eventInParameter source="rejectionReasonArabic" target="rejectionReasonAr"/>
+          <flowable:eventInParameter source="rejectionReasonEnglish" target="rejectionReasonEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-mafwr-rejected"/>
+      </startEvent>
+      <sequenceFlow id="flow_mafwrRejected_to_reject" sourceRef="se_mafwrRejected" targetRef="st_sendRejectionMAFWR"/>
+      <serviceTask id="st_sendRejectionMAFWR" name="إرسال إشعار الرفض" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'REJECTED'}" target="status"/>
+          <flowable:eventOutParameter source="rejectionReasonCode" target="reasonCode"/>
+          <flowable:eventOutParameter source="rejectionReasonAr" target="reasonArabic"/>
+          <flowable:eventOutParameter source="rejectionReasonEn" target="reasonEnglish"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_mafwrRejected_to_end" sourceRef="st_sendRejectionMAFWR" targetRef="end_rejectByMAFWR"/>
+      <endEvent id="end_rejectByMAFWR" name="إنهاء بالرفض">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <subProcess id="esp_bayanRejected" name="رفض نظام بيان" triggeredByEvent="true">
+      <startEvent id="se_bayanRejected" name="رد رفض التخليص" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-bayan-customs-rejected</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="rejectionCode" target="rejectionReasonCode"/>
+          <flowable:eventInParameter source="rejectionReasonArabic" target="rejectionReasonAr"/>
+          <flowable:eventInParameter source="rejectionReasonEnglish" target="rejectionReasonEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-bayan-customs-rejected"/>
+      </startEvent>
+      <sequenceFlow id="flow_bayanRejected_to_reject" sourceRef="se_bayanRejected" targetRef="st_sendRejectionBayan"/>
+      <serviceTask id="st_sendRejectionBayan" name="إرسال إشعار الرفض" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'REJECTED'}" target="status"/>
+          <flowable:eventOutParameter source="rejectionReasonCode" target="reasonCode"/>
+          <flowable:eventOutParameter source="rejectionReasonAr" target="reasonArabic"/>
+          <flowable:eventOutParameter source="rejectionReasonEn" target="reasonEnglish"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_bayanRejected_to_end" sourceRef="st_sendRejectionBayan" targetRef="end_rejectByBayan"/>
+      <endEvent id="end_rejectByBayan" name="إنهاء بالرفض">
+        <terminateEventDefinition/>
+      </endEvent>
+    </subProcess>
+
+    <!-- Non-interrupting: payment failures can occur multiple times while waiting for success -->
+    <subProcess id="esp_paymentFailed" name="فشل السداد" triggeredByEvent="true">
+      <startEvent id="se_paymentFailed" name="رد فشل السداد" isInterrupting="false">
+        <extensionElements>
+          <flowable:eventType>reg001-payment-failed</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="failureCode" target="paymentFailureCode"/>
+          <flowable:eventInParameter source="failureReasonArabic" target="paymentFailureReasonAr"/>
+          <flowable:eventInParameter source="failureReasonEnglish" target="paymentFailureReasonEn"/>
+          <flowable:eventInParameter source="canRetry" target="paymentCanRetry"/>
+          <flowable:eventInParameter source="retryCount" target="paymentRetryCount"/>
+          <flowable:eventInParameter source="maxRetries" target="paymentMaxRetries"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-payment-failed"/>
+      </startEvent>
+      <sequenceFlow id="flow_paymentFailed_to_notify" sourceRef="se_paymentFailed" targetRef="st_sendPaymentFailedStatus"/>
+      <serviceTask id="st_sendPaymentFailedStatus" name="تحديث حالة فشل السداد" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'PAYMENT_FAILED'}" target="status"/>
+          <flowable:eventOutParameter source="paymentFailureCode" target="reasonCode"/>
+          <flowable:eventOutParameter source="paymentFailureReasonAr" target="reasonArabic"/>
+          <flowable:eventOutParameter source="paymentFailureReasonEn" target="reasonEnglish"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_paymentFailed_to_end" sourceRef="st_sendPaymentFailedStatus" targetRef="end_paymentFailed"/>
+      <endEvent id="end_paymentFailed"/>
+    </subProcess>
+
+    <subProcess id="esp_paymentCancelled" name="إلغاء السداد" triggeredByEvent="true">
+      <startEvent id="se_paymentCancelled" name="رد إلغاء السداد" isInterrupting="false">
+        <extensionElements>
+          <flowable:eventType>reg001-payment-cancelled</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-payment-cancelled"/>
+      </startEvent>
+      <sequenceFlow id="flow_paymentCancelled_to_notify" sourceRef="se_paymentCancelled" targetRef="st_sendPaymentCancelledStatus"/>
+      <serviceTask id="st_sendPaymentCancelledStatus" name="تحديث حالة إلغاء السداد" flowable:type="send-event">
+        <extensionElements>
+          <flowable:eventType>reg001-status-update</flowable:eventType>
+          <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+          <flowable:eventOutParameter source="requestId" target="requestId"/>
+          <flowable:eventOutParameter sourceExpression="${'PAYMENT_CANCELLED'}" target="status"/>
+        </extensionElements>
+      </serviceTask>
+      <sequenceFlow id="flow_paymentCancelled_to_end" sourceRef="st_sendPaymentCancelledStatus" targetRef="end_paymentCancelled"/>
+      <endEvent id="end_paymentCancelled"/>
+    </subProcess>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         START EVENT
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <startEvent id="startEvent" name="طلب تسجيل مؤقت جديد">
+      <documentation>
+        Start: New Temporary Registration Request
+        المستفيد يدخل على منظومة MTCIT ويختار خدمة إصدار شهادة تسجيل وحدة بحرية مؤقتة
+      </documentation>
+    </startEvent>
+    <sequenceFlow id="flow_start_to_createDraft" sourceRef="startEvent" targetRef="st_createDraft"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 1: Create Draft Application
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_createDraft" name="إنشاء مسودة الطلب" 
+                 flowable:delegateExpression="${createDraftDelegate}">
+      <documentation>
+        REG-01-01: Create draft application record in the system
+        إنشاء سجل مسودة للطلب مع رقم طلب فريد
+      </documentation>
+      <extensionElements>
+        <flowable:field name="serviceName" stringValue="REG-001"/>
+        <flowable:field name="serviceNameAr" stringValue="إصدار شهادة تسجيل مؤقتة"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_createDraft_to_pki" sourceRef="st_createDraft" targetRef="st_pkiVerification"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 2: PKI Authentication (التصديق الإلكتروني)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_pkiVerification" name="التصديق الإلكتروني PKI"
+                 flowable:delegateExpression="${pkiVerificationDelegate}">
+      <documentation>
+        REG-01-05: PKI Authentication via ROP integration
+        التحقق من هوية المستفيد إلكترونياً عبر شرطة عمان السلطانية
+      </documentation>
+    </serviceTask>
+    <boundaryEvent id="boundary_pki_error" attachedToRef="st_pkiVerification">
+      <errorEventDefinition errorRef="err-pki-failed"/>
+    </boundaryEvent>
+    <sequenceFlow id="flow_pki_success" sourceRef="st_pkiVerification" targetRef="ut_selectBeneficiaryType"/>
+    <sequenceFlow id="flow_pki_failed" sourceRef="boundary_pki_error" targetRef="st_sendRejectionNotification"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 3: Select Beneficiary Type (شركة / فرد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <userTask id="ut_selectBeneficiaryType" name="تحديد نوع المستفيد"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        REG-01-08: Applicant selects whether they are Individual or Company
+        المستفيد يختار إذا كان شركة أم فرد
+      </documentation>
+      <extensionElements>
+        <!-- Angular Stepper Metadata -->
+        <flowable:taskVariable name="stepNumber" value="1"/>
+        <flowable:taskVariable name="stepNameAr" value="تحديد نوع المستفيد"/>
+        <flowable:taskVariable name="stepNameEn" value="Beneficiary Type"/>
+        <flowable:taskVariable name="stepIcon" value="person"/>
+        <flowable:taskVariable name="isOptional" value="false"/>
+
+        <flowable:formProperty id="beneficiaryType" name="نوع المستفيد" type="enum" required="true">
+          <flowable:value id="INDIVIDUAL" name="فرد"/>
+          <flowable:value id="COMPANY" name="شركة"/>
+        </flowable:formProperty>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_beneficiaryType_to_gateway" sourceRef="ut_selectBeneficiaryType" targetRef="gw_beneficiaryType"/>
+
+    <!-- Gateway: Check Beneficiary Type -->
+    <exclusiveGateway id="gw_beneficiaryType" name="نوع المستفيد؟"/>
+    <sequenceFlow id="flow_isCompany" sourceRef="gw_beneficiaryType" targetRef="st_verifyCR">
+      <conditionExpression xsi:type="tFormalExpression">${beneficiaryType == 'COMPANY'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_isIndividual" sourceRef="gw_beneficiaryType" targetRef="ut_enterVesselData">
+      <conditionExpression xsi:type="tFormalExpression">${beneficiaryType == 'INDIVIDUAL'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 4: Verify Commercial Registry (التحقق من السجل التجاري)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_verifyCR" name="التحقق من السجل التجاري"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-09: Verify Commercial Registry via Oman Business Platform (Invest Easy)
+        التأكد من أن المستفيد له سجل تجاري صالح عبر منصة عمان للأعمال
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-cr-validation-request</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="commercialRegistrationNumber" target="commercialRegistrationNumber"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-cr-validation-request'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_cr_valid" sourceRef="st_verifyCR" targetRef="sp_waitCRValid"/>
+
+    <!-- Wait for CR valid response (Event Registry) -->
+    <subProcess id="sp_waitCRValid" name="انتظار نتيجة السجل التجاري">
+      <startEvent id="se_waitCRValid"/>
+      <sequenceFlow id="flow_waitCR_start_to_catch" sourceRef="se_waitCRValid" targetRef="ice_crValid"/>
+      <intermediateCatchEvent id="ice_crValid" name="السجل التجاري ساري">
+        <extensionElements>
+          <flowable:eventType>reg001-cr-validation-valid</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="commercialRegistrationNumber" target="validatedCR"/>
+          <flowable:eventInParameter source="companyNameArabic" target="companyNameAr"/>
+          <flowable:eventInParameter source="companyNameEnglish" target="companyNameEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-cr-validation-valid"/>
+      </intermediateCatchEvent>
+      <sequenceFlow id="flow_waitCR_catch_to_end" sourceRef="ice_crValid" targetRef="end_waitCRValid"/>
+      <endEvent id="end_waitCRValid"/>
+    </subProcess>
+    <sequenceFlow id="flow_waitCR_to_activity" sourceRef="sp_waitCRValid" targetRef="st_verifyActivity"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 5: Verify Maritime Activity (التحقق من النشاط التجاري)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_verifyActivity" name="التحقق من النشاط البحري"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-20: Verify maritime activity is valid for the vessel type
+        التحقق من صلاحية النشاط التجاري البحري حسب نوع الوحدة
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-activity-validation-request</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="commercialRegistrationNumber" target="commercialRegistrationNumber"/>
+        <flowable:eventOutParameter source="activityType" target="activityType"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-activity-validation-request'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_activity_valid" sourceRef="st_verifyActivity" targetRef="sp_waitActivityActive"/>
+
+    <!-- Wait for Activity active response (Event Registry) -->
+    <subProcess id="sp_waitActivityActive" name="انتظار نتيجة التحقق من النشاط">
+      <startEvent id="se_waitActivityActive"/>
+      <sequenceFlow id="flow_waitActivity_start_to_catch" sourceRef="se_waitActivityActive" targetRef="ice_activityActive"/>
+      <intermediateCatchEvent id="ice_activityActive" name="النشاط البحري ساري">
+        <extensionElements>
+          <flowable:eventType>reg001-activity-validation-active</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="activityCode" target="validatedActivityCode"/>
+          <flowable:eventInParameter source="activityNameArabic" target="validatedActivityNameAr"/>
+          <flowable:eventInParameter source="activityNameEnglish" target="validatedActivityNameEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-activity-validation-active"/>
+      </intermediateCatchEvent>
+      <sequenceFlow id="flow_waitActivity_catch_to_end" sourceRef="ice_activityActive" targetRef="end_waitActivityActive"/>
+      <endEvent id="end_waitActivityActive"/>
+    </subProcess>
+    <sequenceFlow id="flow_waitActivity_to_vesselData" sourceRef="sp_waitActivityActive" targetRef="ut_enterVesselData"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 6: Enter Vessel Data (إدخال بيانات الوحدة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <userTask id="ut_enterVesselData" name="إدخال بيانات الوحدة البحرية"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        REG-01-12 to REG-01-17: Enter vessel details
+        المستفيد يختار نوع الوحدة ويدخل بيانات الوحدة البحرية كاملة
+      </documentation>
+      <extensionElements>
+        <!-- Angular Stepper Metadata -->
+        <flowable:taskVariable name="stepNumber" value="2"/>
+        <flowable:taskVariable name="stepNameAr" value="بيانات الوحدة البحرية"/>
+        <flowable:taskVariable name="stepNameEn" value="Vessel Data"/>
+        <flowable:taskVariable name="stepIcon" value="directions_boat"/>
+        <flowable:taskVariable name="isOptional" value="false"/>
+
+        <flowable:formProperty id="vesselCategory" name="نوع الوحدة البحرية" type="enum" required="true"/>
+        <flowable:formProperty id="vesselName" name="اسم الوحدة" type="string"/>
+        <flowable:formProperty id="imoNumber" name="رقم IMO" type="string"/>
+        <flowable:formProperty id="buildYear" name="سنة الصنع" type="long" required="true"/>
+        <flowable:formProperty id="buildDate" name="تاريخ البناء" type="date"/>
+        <flowable:formProperty id="buildCompletionDate" name="تاريخ انتهاء البناء" type="date"/>
+        <flowable:formProperty id="ownershipType" name="نوع الملكية" type="enum">
+          <flowable:value id="BUILD" name="بناء"/>
+          <flowable:value id="PURCHASE" name="عقد بيع"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="grossTonnage" name="الحمولة الإجمالية" type="double"/>
+        <flowable:formProperty id="vesselLength" name="طول الوحدة (متر)" type="double"/>
+        <flowable:formProperty id="activityType" name="نوع النشاط" type="enum"/>
+        <flowable:formProperty id="portOfRegistry" name="ميناء التسجيل" type="enum"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_vesselData_to_validation" sourceRef="ut_enterVesselData" targetRef="st_validateVesselAge"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 7: Validate Vessel Age (التحقق من عمر السفينة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_validateVesselAge" name="التحقق من عمر السفينة"
+                 flowable:type="dmn">
+      <documentation>
+        REG-01-14: Validate vessel age against maximum allowed
+        التأكد من أن سنة الصنع لا تتجاوز المدة المقررة طبقاً للإعدادات
+      </documentation>
+      <extensionElements>
+        <flowable:field name="decisionTableReferenceKey" stringValue="reg001-vessel-age-validation"/>
+        <flowable:field name="decisionTaskThrowErrorOnNoHits" stringValue="false"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_ageValidation_to_gateway" sourceRef="st_validateVesselAge" targetRef="gw_vesselAgeValid"/>
+
+    <!-- Gateway: Vessel Age Valid? -->
+    <exclusiveGateway id="gw_vesselAgeValid" name="عمر السفينة مقبول؟"/>
+    <sequenceFlow id="flow_ageValid" sourceRef="gw_vesselAgeValid" targetRef="st_checkVesselProhibition">
+      <conditionExpression xsi:type="tFormalExpression">${ageValidationResult == 'VALID'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_ageInvalid_warning" sourceRef="gw_vesselAgeValid" targetRef="ut_confirmAgeWarning">
+      <conditionExpression xsi:type="tFormalExpression">${ageValidationResult == 'WARNING'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_ageInvalid_rejected" sourceRef="gw_vesselAgeValid" targetRef="st_sendRejectionNotification">
+      <conditionExpression xsi:type="tFormalExpression">${ageValidationResult == 'REJECTED'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- User Task: Confirm Age Warning -->
+    <userTask id="ut_confirmAgeWarning" name="تأكيد تحذير العمر"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        REG-01-15: Show warning that vessel exceeds recommended age
+        إظهار رسالة تحذيرية بأن المسؤولية تقع على المستفيد
+      </documentation>
+      <extensionElements>
+        <!-- Angular Stepper Metadata -->
+        <flowable:taskVariable name="stepNumber" value="2"/>
+        <flowable:taskVariable name="stepNameAr" value="تأكيد تحذير العمر"/>
+        <flowable:taskVariable name="stepNameEn" value="Age Warning"/>
+        <flowable:taskVariable name="stepIcon" value="warning"/>
+        <flowable:taskVariable name="isOptional" value="true"/>
+
+        <flowable:formProperty id="acceptWarning" name="أوافق على تحمل المسؤولية" type="boolean" required="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_warningAccepted" sourceRef="ut_confirmAgeWarning" targetRef="st_checkVesselProhibition"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 8: Check Vessel Prohibition (التحقق من عدم الحظر)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_checkVesselProhibition" name="التحقق من عدم حظر السفينة"
+                 flowable:delegateExpression="${vesselProhibitionCheckDelegate}">
+      <documentation>
+        REG-01-23: Verify vessel is not on prohibited list
+        التأكد من أن السفينة ليست من السفن المحظورة
+      </documentation>
+    </serviceTask>
+    <boundaryEvent id="boundary_prohibition_error" attachedToRef="st_checkVesselProhibition">
+      <errorEventDefinition errorRef="err-vessel-prohibited"/>
+    </boundaryEvent>
+    <sequenceFlow id="flow_notProhibited" sourceRef="st_checkVesselProhibition" targetRef="st_checkPenalty"/>
+    <sequenceFlow id="flow_prohibited" sourceRef="boundary_prohibition_error" targetRef="st_sendRejectionNotification"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 9: Check Penalty for Late Registration (التحقق من المخالفة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_checkPenalty" name="التحقق من المخالفة"
+                 flowable:type="dmn">
+      <documentation>
+        REG-01-18/19: Check if penalty applies (>30 days from build completion)
+        التحقق من مرور أكثر من ثلاثين يوم على تقديم الطلب من تاريخ انتهاء البناء
+      </documentation>
+      <extensionElements>
+        <flowable:field name="decisionTableReferenceKey" stringValue="reg001-penalty-calculation"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_penalty_to_documents" sourceRef="st_checkPenalty" targetRef="ut_uploadDocuments"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 10: Upload Documents (تحميل المستندات)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <userTask id="ut_uploadDocuments" name="تحميل المستندات"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        REG-01-24: Upload required documents based on settings
+        تحميل المستندات المطلوبة طبقاً للإعدادات الخاصة بالدورة
+      </documentation>
+      <extensionElements>
+        <!-- Angular Stepper Metadata -->
+        <flowable:taskVariable name="stepNumber" value="3"/>
+        <flowable:taskVariable name="stepNameAr" value="تحميل المستندات"/>
+        <flowable:taskVariable name="stepNameEn" value="Upload Documents"/>
+        <flowable:taskVariable name="stepIcon" value="attach_file"/>
+        <flowable:taskVariable name="isOptional" value="false"/>
+
+        <flowable:formProperty id="buildCertificate" name="شهادة البناء" type="string"/>
+        <flowable:formProperty id="purchaseContract" name="عقد البيع" type="string"/>
+        <flowable:formProperty id="inspectionReports" name="تقارير المعاينة" type="string"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_documents_to_vesselType" sourceRef="ut_uploadDocuments" targetRef="gw_vesselType"/>
+
+    <!-- Gateway: Check Vessel Type -->
+    <exclusiveGateway id="gw_vesselType" name="نوع الوحدة؟"/>
+    <sequenceFlow id="flow_isFishingVessel" sourceRef="gw_vesselType" targetRef="st_requestMAFWRApproval">
+      <conditionExpression xsi:type="tFormalExpression">${vesselCategory == 'FISHING'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_notFishingVessel" sourceRef="gw_vesselType" targetRef="gw_inspectionRequired">
+      <conditionExpression xsi:type="tFormalExpression">${vesselCategory != 'FISHING'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 11: MAFWR Approval (موافقة وزارة الثروة الزراعية) - For Fishing Vessels
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_requestMAFWRApproval" name="طلب موافقة وزارة الثروة الزراعية"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-26: Request approval from MAFWR for fishing vessels
+        إرسال الطلب إلى نظام وزارة الثروة الزراعية والسمكية وموارد المياه للحصول على الموافقة
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-mafwr-approval-request</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="vesselCategory" target="vesselCategory"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-mafwr-approval-request'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_mafwr_to_wait" sourceRef="st_requestMAFWRApproval" targetRef="sp_waitMAFWRAccept"/>
+
+    <!-- Wait for MAFWR approved response (Event Registry) -->
+    <subProcess id="sp_waitMAFWRAccept" name="انتظار موافقة وزارة الثروة الزراعية">
+      <startEvent id="se_waitMAFWRApproved"/>
+      <sequenceFlow id="flow_waitMAFWR_start_to_catch" sourceRef="se_waitMAFWRApproved" targetRef="ice_mafwrApproved"/>
+      <intermediateCatchEvent id="ice_mafwrApproved" name="موافقة وزارة الثروة الزراعية">
+        <extensionElements>
+          <flowable:eventType>reg001-mafwr-approved</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="approvalReference" target="mafwrApprovalReference"/>
+          <flowable:eventInParameter source="approvalDate" target="mafwrApprovalDate"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-mafwr-approved"/>
+      </intermediateCatchEvent>
+      <sequenceFlow id="flow_waitMAFWR_to_end" sourceRef="ice_mafwrApproved" targetRef="end_waitMAFWRApproved"/>
+      <endEvent id="end_waitMAFWRApproved"/>
+    </subProcess>
+    <boundaryEvent id="timer_mafwrResponse" attachedToRef="sp_waitMAFWRAccept" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>P5D</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_mafwr_timeout" sourceRef="timer_mafwrResponse" targetRef="ut_mafwrEscalation"/>
+    <sequenceFlow id="flow_mafwr_response" sourceRef="sp_waitMAFWRAccept" targetRef="gw_inspectionRequired"/>
+
+    <!-- User Task: MAFWR Escalation -->
+    <userTask id="ut_mafwrEscalation" name="متابعة طلب وزارة الثروة الزراعية"
+              flowable:candidateGroups="registration_department">
+      <documentation>Escalation task when MAFWR does not respond in time</documentation>
+    </userTask>
+    <sequenceFlow id="flow_escalation_retry" sourceRef="ut_mafwrEscalation" targetRef="receive_mafwrResponse"/>
+
+    <!-- MAFWR rejection is handled via interrupting Event Subprocess (esp_mafwrRejected) -->
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 12: Check Inspection Required (التحقق من الحاجة للمعاينة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="gw_inspectionRequired" name="التحقق من الحاجة للمعاينة"
+                 flowable:type="dmn">
+      <documentation>
+        REG-01-25: Determine if inspection is required based on vessel attributes
+        تحديد مسار الوحدة: بناء/أكبر من 24م/تغيير علم - يتطلب معاينة
+      </documentation>
+      <extensionElements>
+        <flowable:field name="decisionTableReferenceKey" stringValue="reg001-inspection-required"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_inspection_decision" sourceRef="gw_inspectionRequired" targetRef="gw_inspectionDecision"/>
+
+    <!-- Gateway: Inspection Decision -->
+    <exclusiveGateway id="gw_inspectionDecision" name="معاينة مطلوبة؟"/>
+    <sequenceFlow id="flow_inspectionRequired" sourceRef="gw_inspectionDecision" targetRef="call_inspectionProcess">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionRequired == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_noInspectionRequired" sourceRef="gw_inspectionDecision" targetRef="st_calculateFees">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionRequired == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 13: Inspection Sub-Process (دورة المعاينة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <callActivity id="call_inspectionProcess" name="دورة المعاينة"
+                  calledElement="reg001-inspection-subprocess">
+      <documentation>
+        REG-01-29/30: Call inspection subprocess
+        استدعاء دورة المعاينة للتحقق من مطابقة الوحدة للاشتراطات
+      </documentation>
+      <extensionElements>
+        <flowable:in source="requestId" target="requestId"/>
+        <flowable:in source="vesselCategory" target="vesselCategory"/>
+        <flowable:in source="vesselLength" target="vesselLength"/>
+        <flowable:in source="grossTonnage" target="grossTonnage"/>
+        <flowable:out source="inspectionResult" target="inspectionResult"/>
+        <flowable:out source="inspectionReportId" target="inspectionReportId"/>
+      </extensionElements>
+    </callActivity>
+    <boundaryEvent id="boundary_inspection_error" attachedToRef="call_inspectionProcess">
+      <errorEventDefinition errorRef="err-inspection-failed"/>
+    </boundaryEvent>
+    <sequenceFlow id="flow_inspectionPassed" sourceRef="call_inspectionProcess" targetRef="gw_inspectionResult"/>
+    <sequenceFlow id="flow_inspectionFailed" sourceRef="boundary_inspection_error" targetRef="st_sendRejectionNotification"/>
+
+    <!-- Gateway: Inspection Result -->
+    <exclusiveGateway id="gw_inspectionResult" name="نتيجة المعاينة؟"/>
+    <sequenceFlow id="flow_inspectionMatch" sourceRef="gw_inspectionResult" targetRef="st_calculateFees">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionResult == 'PASSED'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_inspectionNoMatch" sourceRef="gw_inspectionResult" targetRef="st_sendRejectionNotification">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionResult != 'PASSED'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 14: Calculate Fees (حساب الرسوم)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_calculateFees" name="حساب الرسوم"
+                 flowable:type="dmn">
+      <documentation>
+        REG-01-32/33: Calculate registration fees using DMN
+        حساب رسوم التسجيل المؤقت باستخدام جدول القرارات
+      </documentation>
+      <extensionElements>
+        <flowable:field name="decisionTableReferenceKey" stringValue="reg001-fee-calculation"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_fees_to_name" sourceRef="st_calculateFees" targetRef="ut_selectVesselName"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 15: Select and Reserve Vessel Name (اختيار وحجز اسم السفينة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <userTask id="ut_selectVesselName" name="اختيار اسم السفينة"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        REG-01-32: Applicant selects vessel name (reserved temporarily for payment)
+        اختيار الاسم المطلوب (يتم الحجز لمدة تحدد بالدقائق لحين سداد الرسوم)
+      </documentation>
+      <extensionElements>
+        <!-- Angular Stepper Metadata -->
+        <flowable:taskVariable name="stepNumber" value="4"/>
+        <flowable:taskVariable name="stepNameAr" value="اختيار اسم السفينة"/>
+        <flowable:taskVariable name="stepNameEn" value="Vessel Name"/>
+        <flowable:taskVariable name="stepIcon" value="label"/>
+        <flowable:taskVariable name="isOptional" value="false"/>
+
+        <flowable:formProperty id="selectedVesselName" name="اسم السفينة المختار" type="string" required="true"/>
+        <flowable:formProperty id="vesselNameArabic" name="اسم السفينة بالعربية" type="string" required="true"/>
+        <flowable:formProperty id="vesselNameEnglish" name="اسم السفينة بالإنجليزية" type="string" required="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_name_to_reserve" sourceRef="ut_selectVesselName" targetRef="st_reserveName"/>
+
+    <!-- Service Task: Reserve Name -->
+    <serviceTask id="st_reserveName" name="حجز اسم السفينة"
+                 flowable:type="send-event">
+      <documentation>
+        Reserve the selected vessel name for a configured duration
+        حجز اسم السفينة لفترة محددة
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-name-reserved</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="selectedVesselName" target="vesselName"/>
+        <flowable:eventOutParameter sourceExpression="${30}" target="reservationMinutes"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-name-reserved'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <boundaryEvent id="timer_nameReservation" attachedToRef="st_reserveName" cancelActivity="false">
+      <timerEventDefinition>
+        <timeDuration>PT30M</timeDuration> <!-- 30 minutes reservation -->
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_reserve_to_payment" sourceRef="st_reserveName" targetRef="st_initiatePayment"/>
+    <sequenceFlow id="flow_nameExpired" sourceRef="timer_nameReservation" targetRef="st_releaseNameReservation"/>
+
+    <!-- Service Task: Release Name Reservation -->
+    <serviceTask id="st_releaseNameReservation" name="إلغاء حجز الاسم"
+                 flowable:type="send-event">
+      <extensionElements>
+        <flowable:eventType>reg001-name-reservation-released</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="selectedVesselName" target="vesselName"/>
+        <flowable:eventOutParameter sourceExpression="${'EXPIRED'}" target="releaseReason"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-name-reservation-released'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_releaseToEnd" sourceRef="st_releaseNameReservation" targetRef="endEvent_cancelled"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 16: Payment Process (دورة سداد الرسوم)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_initiatePayment" name="إرسال طلب السداد"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-33: Initiate payment via Bank Muscat ePayment Gateway
+        التحويل لدورة سداد الرسوم وإرسال إشعار بالفاتورة
+      </documentation>
+    </serviceTask>
+    <extensionElements>
+      <flowable:eventType>reg001-payment-request</flowable:eventType>
+      <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+      <flowable:eventOutParameter source="requestId" target="requestId"/>
+      <flowable:eventOutParameter source="totalFee" target="amount"/>
+      <flowable:eventOutParameter sourceExpression="${'OMR'}" target="currency"/>
+      <flowable:eventOutParameter sourceExpression="${'reg001-payment-request'}" target="eventType"/>
+    </extensionElements>
+    <sequenceFlow id="flow_payment_to_wait" sourceRef="st_initiatePayment" targetRef="sp_waitPaymentSuccess"/>
+
+    <!-- Wait for Payment success (Event Registry) -->
+    <subProcess id="sp_waitPaymentSuccess" name="انتظار تأكيد السداد">
+      <startEvent id="se_waitPaymentSuccess"/>
+      <sequenceFlow id="flow_waitPayment_start_to_catch" sourceRef="se_waitPaymentSuccess" targetRef="ice_paymentSuccessful"/>
+      <intermediateCatchEvent id="ice_paymentSuccessful" name="السداد ناجح">
+        <extensionElements>
+          <flowable:eventType>reg001-payment-successful</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="invoiceNumber" target="invoiceNumber"/>
+          <flowable:eventInParameter source="transactionReference" target="transactionReference"/>
+          <flowable:eventInParameter source="amountPaid" target="amountPaid"/>
+          <flowable:eventInParameter source="receiptNumber" target="receiptNumber"/>
+          <flowable:eventInParameter source="receiptDocumentUrl" target="receiptDocumentUrl"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-payment-successful"/>
+      </intermediateCatchEvent>
+      <sequenceFlow id="flow_waitPayment_to_end" sourceRef="ice_paymentSuccessful" targetRef="end_waitPaymentSuccess"/>
+      <endEvent id="end_waitPaymentSuccess"/>
+    </subProcess>
+    <boundaryEvent id="timer_paymentExpiry" attachedToRef="sp_waitPaymentSuccess" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>PT24H</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_payment_timeout" sourceRef="timer_paymentExpiry" targetRef="st_cancelPayment"/>
+    <sequenceFlow id="flow_payment_success" sourceRef="sp_waitPaymentSuccess" targetRef="gw_customsRequired"/>
+
+    <!-- Service Task: Cancel Payment (Invoice Cancel) -->
+    <serviceTask id="st_cancelPayment" name="إلغاء الفاتورة" flowable:type="send-event">
+      <extensionElements>
+        <flowable:eventType>reg001-invoice-cancelled</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="invoiceNumber" target="invoiceNumber"/>
+        <flowable:eventOutParameter sourceExpression="${'TIMEOUT'}" target="cancelReason"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-invoice-cancelled'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_cancelPayment" sourceRef="st_cancelPayment" targetRef="endEvent_cancelled"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 17: Bayan Customs Integration (تكامل نظام بيان)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="gw_customsRequired" name="التحقق من الحاجة للجمارك"
+                 flowable:type="dmn">
+      <documentation>Check if customs clearance is required</documentation>
+      <extensionElements>
+        <flowable:field name="decisionTableReferenceKey" stringValue="reg001-customs-required"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_customs_decision" sourceRef="gw_customsRequired" targetRef="gw_customsDecision"/>
+
+    <exclusiveGateway id="gw_customsDecision" name="جمارك مطلوبة؟"/>
+    <sequenceFlow id="flow_customsRequired" sourceRef="gw_customsDecision" targetRef="st_requestBayanClearance">
+      <conditionExpression xsi:type="tFormalExpression">${customsRequired == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_noCustomsRequired" sourceRef="gw_customsDecision" targetRef="st_issueCertificate">
+      <conditionExpression xsi:type="tFormalExpression">${customsRequired == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- Service Task: Request Bayan Clearance -->
+    <serviceTask id="st_requestBayanClearance" name="إرسال طلب الإفراج الجمركي"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-43/44: Send request to Bayan Customs System
+        إرسال الطلب الى نظام بيان للحصول على وثيقة الاستيراد والإفراج الجمركي
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-bayan-customs-request</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-bayan-customs-request'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_bayan_to_wait" sourceRef="st_requestBayanClearance" targetRef="sp_waitBayanCleared"/>
+
+    <!-- Wait for Bayan cleared response (Event Registry) -->
+    <subProcess id="sp_waitBayanCleared" name="انتظار الإفراج الجمركي">
+      <startEvent id="se_waitBayanCleared"/>
+      <sequenceFlow id="flow_waitBayan_start_to_catch" sourceRef="se_waitBayanCleared" targetRef="ice_bayanCleared"/>
+      <intermediateCatchEvent id="ice_bayanCleared" name="تم الإفراج الجمركي">
+        <extensionElements>
+          <flowable:eventType>reg001-bayan-customs-cleared</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="clearanceDocumentUrl" target="bayanClearanceDocumentUrl"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-bayan-customs-cleared"/>
+      </intermediateCatchEvent>
+      <sequenceFlow id="flow_waitBayan_to_end" sourceRef="ice_bayanCleared" targetRef="end_waitBayanCleared"/>
+      <endEvent id="end_waitBayanCleared"/>
+    </subProcess>
+    <boundaryEvent id="timer_bayanResponse" attachedToRef="sp_waitBayanCleared" cancelActivity="false">
+      <timerEventDefinition>
+        <timeDuration>P3D</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_bayan_response" sourceRef="sp_waitBayanCleared" targetRef="st_issueCertificate"/>
+    <sequenceFlow id="flow_bayan_timeout" sourceRef="timer_bayanResponse" targetRef="ut_bayanEscalation"/>
+
+    <!-- User Task: Bayan Escalation -->
+    <userTask id="ut_bayanEscalation" name="متابعة الإفراج الجمركي"
+              flowable:candidateGroups="registration_department"/>
+    <sequenceFlow id="flow_bayan_escalation" sourceRef="ut_bayanEscalation" targetRef="receive_bayanResponse"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 18: Issue Certificate (إصدار الشهادة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_issueCertificate" name="إصدار الشهادة المؤقتة"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-34: Issue temporary registration certificate (PDF + QR)
+        إصدار شهادة التسجيل المؤقتة بصيغة PDF مع رمز QR للتحقق
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-temporary-certificate-issued</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-temporary-certificate-issued'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_certificate_to_notification" sourceRef="st_issueCertificate" targetRef="st_sendNotification"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 19: Send Notification (إرسال الإشعار)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_sendNotification" name="إرسال إشعار بإصدار الشهادة"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-34: Send notification to applicant about certificate issuance
+        إرسال إشعار للمستفيد بإصدار الشهادة
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-notification</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter sourceExpression="${'CERTIFICATE_ISSUED'}" target="notificationType"/>
+        <flowable:eventOutParameter sourceExpression="${'SMS,EMAIL,IN_APP'}" target="channels"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-notification'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_notification_to_reminders" sourceRef="st_sendNotification" targetRef="timer_permanentRegistrationReminder"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 20: Permanent Registration Reminders (تنبيهات التسجيل الدائم)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <intermediateCatchEvent id="timer_permanentRegistrationReminder" name="تنبيه التسجيل الدائم">
+      <documentation>
+        REG-01-45: Send periodic reminders for permanent registration
+        إرسال تنبيه للمستفيد بضرورة استكمال التسجيل الدائم للوحدة
+      </documentation>
+      <timerEventDefinition>
+        <timeCycle>R/P7D</timeCycle> <!-- Every 7 days -->
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+    <sequenceFlow id="flow_reminder_check" sourceRef="timer_permanentRegistrationReminder" targetRef="gw_checkPermanentRegistration"/>
+
+    <!-- Gateway: Check if permanent registration completed -->
+    <exclusiveGateway id="gw_checkPermanentRegistration" name="تسجيل دائم مكتمل؟"/>
+    <sequenceFlow id="flow_permanentComplete" sourceRef="gw_checkPermanentRegistration" targetRef="endEvent_success">
+      <conditionExpression xsi:type="tFormalExpression">${permanentRegistrationComplete == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_permanentPending" sourceRef="gw_checkPermanentRegistration" targetRef="st_sendReminders">
+      <conditionExpression xsi:type="tFormalExpression">${permanentRegistrationComplete == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- Service Task: Send Reminders -->
+    <serviceTask id="st_sendReminders" name="إرسال تنبيه التسجيل الدائم"
+                 flowable:type="send-event">
+      <extensionElements>
+        <flowable:eventType>reg001-permanent-registration-reminder</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-permanent-registration-reminder'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_reminder_check_penalty" sourceRef="st_sendReminders" targetRef="gw_checkPenaltyDue"/>
+
+    <!-- Gateway: Check if penalty is due -->
+    <exclusiveGateway id="gw_checkPenaltyDue" name="غرامة مستحقة؟"/>
+    <sequenceFlow id="flow_penaltyDue" sourceRef="gw_checkPenaltyDue" targetRef="st_applyPenalty">
+      <conditionExpression xsi:type="tFormalExpression">${penaltyDue == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_noPenalty" sourceRef="gw_checkPenaltyDue" targetRef="timer_permanentRegistrationReminder">
+      <conditionExpression xsi:type="tFormalExpression">${penaltyDue == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- Service Task: Apply Penalty -->
+    <serviceTask id="st_applyPenalty" name="تسجيل غرامة التأخير"
+                 flowable:type="send-event">
+      <documentation>
+        REG-01-47: Apply penalty for late permanent registration
+        تسجيل غرامة على المستفيد في حالة مرور فترة زمنية طبقاً للإعدادات
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-penalty-applied</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="penaltyAmount" target="penaltyAmount"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-penalty-applied'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_penalty_to_end" sourceRef="st_applyPenalty" targetRef="endEvent_penaltyApplied"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         REJECTION NOTIFICATION (إشعار الرفض)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_sendRejectionNotification" name="إرسال إشعار الرفض"
+                 flowable:type="send-event">
+      <documentation>
+        Send rejection notification with reason
+        إرسال إشعار بالرفض مع ذكر السبب
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-status-update</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter sourceExpression="${'REJECTED'}" target="status"/>
+        <flowable:eventOutParameter source="rejectionReasonCode" target="reasonCode"/>
+        <flowable:eventOutParameter source="rejectionReasonAr" target="reasonArabic"/>
+        <flowable:eventOutParameter source="rejectionReasonEn" target="reasonEnglish"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-status-update'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_rejection_to_end" sourceRef="st_sendRejectionNotification" targetRef="endEvent_rejected"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         END EVENTS
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <endEvent id="endEvent_success" name="تم بنجاح">
+      <documentation>Process completed successfully with permanent registration</documentation>
+    </endEvent>
+
+    <endEvent id="endEvent_penaltyApplied" name="تم مع غرامة">
+      <documentation>Process completed but penalty was applied</documentation>
+    </endEvent>
+
+    <endEvent id="endEvent_rejected" name="مرفوض">
+      <documentation>Request was rejected</documentation>
+    </endEvent>
+
+    <endEvent id="endEvent_cancelled" name="ملغي">
+      <documentation>Request was cancelled (payment timeout, name reservation expired, etc.)</documentation>
+    </endEvent>
+
+  </process>
+
+</definitions>

@@ -1,0 +1,30 @@
+{
+  "key": "reg001-cr-validation-request",
+  "category": "event",
+  "name": "Commercial Registration Validation Request",
+  "description": "Request to Invest Easy (منصة عمان للأعمال) for CR validation. Outbound event for Step 8",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string",
+      "description": "رقم السجل التجاري"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "key": "reg001-inspection-passed",
+  "category": "event",
+  "name": "Vessel Inspection Passed",
+  "description": "Vessel inspection passed - requirements matched. المعاينة مطابقة",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "inspectionId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "inspectionId",
+      "type": "string"
+    },
+    {
+      "name": "vesselImoNumber",
+      "type": "string"
+    },
+    {
+      "name": "inspectionType",
+      "type": "string",
+      "description": "CONSTRUCTION, FLAG_CHANGE, SALE, REGULAR"
+    },
+    {
+      "name": "inspectorType",
+      "type": "string",
+      "description": "CLASS_SOCIETY, CONSULTANT"
+    },
+    {
+      "name": "inspectorName",
+      "type": "string"
+    },
+    {
+      "name": "inspectorLicenseNumber",
+      "type": "string"
+    },
+    {
+      "name": "inspectionDate",
+      "type": "string"
+    },
+    {
+      "name": "inspectionLocation",
+      "type": "string"
+    },
+    {
+      "name": "reportReferenceNumber",
+      "type": "string"
+    },
+    {
+      "name": "reportDocumentUrl",
+      "type": "string"
+    },
+    {
+      "name": "validUntil",
+      "type": "string"
+    },
+    {
+      "name": "safetyEquipmentVerified",
+      "type": "boolean"
+    },
+    {
+      "name": "hullConditionVerified",
+      "type": "boolean"
+    },
+    {
+      "name": "engineConditionVerified",
+      "type": "boolean"
+    }
+  ]
+}

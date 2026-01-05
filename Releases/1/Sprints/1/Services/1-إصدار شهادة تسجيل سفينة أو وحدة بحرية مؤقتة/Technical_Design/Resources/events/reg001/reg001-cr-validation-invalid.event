@@ -1,0 +1,44 @@
+{
+  "key": "reg001-cr-validation-invalid",
+  "category": "event",
+  "name": "Commercial Registration Invalid",
+  "description": "Rejection response from Invest Easy - CR is invalid, expired, or not found. السجل التجاري غير صالح",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "invalidReasonCode",
+      "type": "string",
+      "description": "EXPIRED, NOT_FOUND, SUSPENDED, CANCELLED, NO_MARITIME_ACTIVITY"
+    },
+    {
+      "name": "invalidReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "invalidReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "validationTimestamp",
+      "type": "string"
+    }
+  ]
+}

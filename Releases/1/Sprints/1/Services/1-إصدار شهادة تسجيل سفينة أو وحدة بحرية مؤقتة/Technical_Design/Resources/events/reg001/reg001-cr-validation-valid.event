@@ -1,0 +1,57 @@
+{
+  "key": "reg001-cr-validation-valid",
+  "category": "event",
+  "name": "Commercial Registration Valid",
+  "description": "Success response from Invest Easy - CR is valid and active. السجل التجاري صالح",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string",
+      "description": "رقم السجل التجاري"
+    },
+    {
+      "name": "companyNameArabic",
+      "type": "string"
+    },
+    {
+      "name": "companyNameEnglish",
+      "type": "string"
+    },
+    {
+      "name": "registrationDate",
+      "type": "string"
+    },
+    {
+      "name": "expiryDate",
+      "type": "string"
+    },
+    {
+      "name": "legalStatus",
+      "type": "string"
+    },
+    {
+      "name": "authorizedActivities",
+      "type": "string",
+      "description": "JSON array of activity codes"
+    },
+    {
+      "name": "validationTimestamp",
+      "type": "string"
+    }
+  ]
+}

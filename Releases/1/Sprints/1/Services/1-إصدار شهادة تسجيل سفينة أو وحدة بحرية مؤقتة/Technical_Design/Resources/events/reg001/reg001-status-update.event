@@ -1,0 +1,42 @@
+{
+  "key": "reg001-status-update",
+  "category": "event",
+  "name": "REG-001 Request Status Update",
+  "description": "General status update event for tracking registration request progress throughout the workflow",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "previousStatus",
+      "type": "string"
+    },
+    {
+      "name": "currentStatus",
+      "type": "string",
+      "description": "DRAFT, PENDING_PKI, PKI_VERIFIED, PENDING_CR_VALIDATION, CR_VALIDATED, PENDING_ACTIVITY_CHECK, ACTIVITY_VALIDATED, PENDING_MAFWR, MAFWR_APPROVED, PENDING_INSPECTION, INSPECTION_COMPLETED, PENDING_PAYMENT, PAYMENT_COMPLETED, PENDING_CUSTOMS, CUSTOMS_CLEARED, CERTIFICATE_ISSUED, REJECTED, CANCELLED"
+    },
+    {
+      "name": "statusReason",
+      "type": "string"
+    },
+    {
+      "name": "updatedBy",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    },
+    {
+      "name": "nextExpectedStep",
+      "type": "string"
+    }
+  ]
+}

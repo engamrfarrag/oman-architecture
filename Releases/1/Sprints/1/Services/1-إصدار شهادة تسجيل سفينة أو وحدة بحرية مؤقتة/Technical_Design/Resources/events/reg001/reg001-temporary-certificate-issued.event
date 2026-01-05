@@ -1,0 +1,74 @@
+{
+  "key": "reg001-temporary-certificate-issued",
+  "category": "event",
+  "name": "Temporary Registration Certificate Issued",
+  "description": "Event published when temporary registration certificate is issued. Step: إصدار الشهادة المؤقتة",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "certificateNumber",
+      "type": "string",
+      "description": "شهادة تسجيل مؤقتة رقم"
+    },
+    {
+      "name": "registrationNumber",
+      "type": "string",
+      "description": "رقم التسجيل (رمز الميناء + التسلسلي)"
+    },
+    {
+      "name": "vesselName",
+      "type": "string"
+    },
+    {
+      "name": "vesselNameReserved",
+      "type": "string",
+      "description": "الاسم المطلوب المحجوز"
+    },
+    {
+      "name": "vesselImoNumber",
+      "type": "string"
+    },
+    {
+      "name": "vesselType",
+      "type": "string"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "ownerName",
+      "type": "string"
+    },
+    {
+      "name": "portOfRegistry",
+      "type": "string"
+    },
+    {
+      "name": "issuanceDate",
+      "type": "string"
+    },
+    {
+      "name": "expiryDate",
+      "type": "string",
+      "description": "صلاحية الشهادة"
+    },
+    {
+      "name": "certificateUrl",
+      "type": "string",
+      "description": "PDF + QR code URL"
+    },
+    {
+      "name": "qrCode",
+      "type": "string"
+    }
+  ]
+}

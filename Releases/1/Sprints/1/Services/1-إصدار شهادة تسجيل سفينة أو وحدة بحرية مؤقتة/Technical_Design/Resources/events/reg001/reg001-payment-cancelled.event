@@ -1,0 +1,60 @@
+{
+  "key": "reg001-payment-cancelled",
+  "category": "event",
+  "name": "Payment Cancelled",
+  "description": "Payment has been cancelled by user or timeout. إلغاء عملية السداد",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonCode",
+      "type": "string",
+      "description": "USER_CANCELLED, SESSION_TIMEOUT, BROWSER_CLOSED, PAYMENT_GATEWAY_ERROR"
+    },
+    {
+      "name": "cancellationReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "invoiceAmount",
+      "type": "double"
+    },
+    {
+      "name": "cancellationTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "invoiceStillValid",
+      "type": "boolean"
+    },
+    {
+      "name": "invoiceExpiryTime",
+      "type": "string"
+    }
+  ]
+}

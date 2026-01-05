@@ -1,0 +1,10 @@
+{
+  "key": "inboundChannel",
+  "channelType": "inbound",
+  "type": "kafka",
+  "topic": "inboundTopic",
+  "deserializerType": "json",
+  "channelEventKeyDetection": {
+    "fixedValue": "inboundEvent"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "key": "reg001-payment-successful",
+  "category": "event",
+  "name": "Payment Successful",
+  "description": "Payment completed successfully via ePayment Gateway. السداد ناجح",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string",
+      "description": "رقم الفاتورة"
+    },
+    {
+      "name": "transactionReference",
+      "type": "string"
+    },
+    {
+      "name": "amountPaid",
+      "type": "double"
+    },
+    {
+      "name": "currency",
+      "type": "string"
+    },
+    {
+      "name": "paymentDate",
+      "type": "string"
+    },
+    {
+      "name": "paymentMethod",
+      "type": "string",
+      "description": "CARD, BANK_TRANSFER, QR"
+    },
+    {
+      "name": "receiptNumber",
+      "type": "string",
+      "description": "إيصال دفع إلكتروني"
+    },
+    {
+      "name": "receiptDocumentUrl",
+      "type": "string"
+    },
+    {
+      "name": "serviceFee",
+      "type": "double"
+    },
+    {
+      "name": "penaltyAmount",
+      "type": "double",
+      "description": "مخالفة اللوائح if applicable"
+    },
+    {
+      "name": "totalAmount",
+      "type": "double"
+    }
+  ]
+}

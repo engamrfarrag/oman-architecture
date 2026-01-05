@@ -1,0 +1,37 @@
+{
+  "key": "reg001-activity-validation-request",
+  "name": "REG-001 Activity Validation Request",
+  "description": "طلب التحقق من النشاط البحري - Request to verify maritime activity from Invest Easy",
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "crNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "crNumber",
+      "type": "string"
+    },
+    {
+      "name": "applicantId",
+      "type": "string"
+    },
+    {
+      "name": "requiredActivityCodes",
+      "type": "collection"
+    },
+    {
+      "name": "requestTimestamp",
+      "type": "string"
+    }
+  ]
+}

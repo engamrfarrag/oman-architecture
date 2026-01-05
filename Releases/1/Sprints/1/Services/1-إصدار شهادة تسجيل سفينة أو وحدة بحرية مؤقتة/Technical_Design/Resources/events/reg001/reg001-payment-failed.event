@@ -1,0 +1,64 @@
+{
+  "key": "reg001-payment-failed",
+  "category": "event",
+  "name": "Payment Failed",
+  "description": "Payment failed via ePayment Gateway. فشل السداد",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    },
+    {
+      "name": "failureCode",
+      "type": "string",
+      "description": "INSUFFICIENT_FUNDS, CARD_DECLINED, TIMEOUT, BANK_ERROR, INVALID_CARD"
+    },
+    {
+      "name": "failureReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "failureReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "attemptedAmount",
+      "type": "double"
+    },
+    {
+      "name": "failureTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "canRetry",
+      "type": "boolean"
+    },
+    {
+      "name": "retryCount",
+      "type": "integer"
+    },
+    {
+      "name": "maxRetries",
+      "type": "integer"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "key": "reg001-permanent-registration-reminder",
+  "category": "event",
+  "name": "Permanent Registration Reminder",
+  "description": "Reminder notification for completing permanent registration. Step: إرسال تنبيه للمستفيد بضرورة استكمال التسجيل الدائم للوحدة - تكرار ارسال التنبيه كل فترة زمنية طبقا لإعداد (7 ايام)",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "temporaryCertificateNumber",
+      "type": "string"
+    },
+    {
+      "name": "vesselName",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "ownerName",
+      "type": "string"
+    },
+    {
+      "name": "reminderNumber",
+      "type": "integer",
+      "description": "Which reminder this is (1st, 2nd, etc.)"
+    },
+    {
+      "name": "daysRemaining",
+      "type": "integer",
+      "description": "Days remaining before penalty"
+    },
+    {
+      "name": "nextReminderDate",
+      "type": "string"
+    },
+    {
+      "name": "recipientEmail",
+      "type": "string"
+    },
+    {
+      "name": "recipientMobile",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

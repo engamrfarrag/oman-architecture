@@ -1,0 +1,89 @@
+{
+  "key": "reg001-invoice-issued",
+  "category": "event",
+  "name": "Invoice Issued",
+  "description": "Invoice generated for registration fees. Step: إصدار الفاتورة الإلكترونية - توليد رقم فاتورة فريد وربطها برقم الطلب",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string",
+      "description": "رقم الفاتورة الفريد"
+    },
+    {
+      "name": "civilId",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "serviceCode",
+      "type": "string",
+      "description": "MTCIT-REG-001"
+    },
+    {
+      "name": "serviceNameArabic",
+      "type": "string",
+      "description": "إصدار شهادة تسجيل مؤقتة"
+    },
+    {
+      "name": "serviceNameEnglish",
+      "type": "string"
+    },
+    {
+      "name": "serviceFee",
+      "type": "double",
+      "description": "رسوم الخدمة"
+    },
+    {
+      "name": "penaltyFee",
+      "type": "double",
+      "description": "بند مخالفة اللوائح والقوانين (if > 30 days late)"
+    },
+    {
+      "name": "totalAmount",
+      "type": "double"
+    },
+    {
+      "name": "currency",
+      "type": "string"
+    },
+    {
+      "name": "issuedDate",
+      "type": "string"
+    },
+    {
+      "name": "dueDate",
+      "type": "string"
+    },
+    {
+      "name": "expiryDate",
+      "type": "string",
+      "description": "Invoice validity period"
+    },
+    {
+      "name": "paymentUrl",
+      "type": "string",
+      "description": "Link to payment gateway"
+    },
+    {
+      "name": "qrCode",
+      "type": "string",
+      "description": "QR code for payment"
+    }
+  ]
+}

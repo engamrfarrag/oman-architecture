@@ -1,0 +1,38 @@
+{
+  "key": "reg001-bayan-customs-request",
+  "category": "event",
+  "name": "Bayan Customs Request",
+  "description": "Request to نظام بيان for import declaration and customs clearance. Step: ارسال الطلب الى نظام بيان",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "vesselDetails",
+      "type": "string",
+      "description": "JSON with vessel information"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

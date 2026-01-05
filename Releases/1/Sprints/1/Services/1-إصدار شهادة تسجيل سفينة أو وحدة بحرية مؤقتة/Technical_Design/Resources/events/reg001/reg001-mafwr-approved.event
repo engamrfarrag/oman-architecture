@@ -1,0 +1,61 @@
+{
+  "key": "reg001-mafwr-approved",
+  "category": "event",
+  "name": "MAFWR Fishing Vessel Approved",
+  "description": "Approval from وزارة الثروة الزراعية والسمكية وموارد المياه for fishing vessel registration. موافقة الوزارة",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselType",
+      "type": "string"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "approvalReferenceNumber",
+      "type": "string",
+      "description": "رقم مرجع الموافقة"
+    },
+    {
+      "name": "approvalDate",
+      "type": "string"
+    },
+    {
+      "name": "approvalValidUntil",
+      "type": "string"
+    },
+    {
+      "name": "fishingZoneApproved",
+      "type": "string"
+    },
+    {
+      "name": "conditions",
+      "type": "string",
+      "description": "Any conditions attached to approval"
+    },
+    {
+      "name": "approvedBy",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "key": "reg001-activity-validation-active",
+  "category": "event",
+  "name": "Maritime Activity Active",
+  "description": "Success response from Invest Easy - maritime activity is active and valid. النشاط البحري ساري",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "activityCode",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "commercialRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "activityCode",
+      "type": "string",
+      "description": "رمز النشاط البحري"
+    },
+    {
+      "name": "activityNameArabic",
+      "type": "string"
+    },
+    {
+      "name": "activityNameEnglish",
+      "type": "string"
+    },
+    {
+      "name": "activityStartDate",
+      "type": "string"
+    },
+    {
+      "name": "activityExpiryDate",
+      "type": "string"
+    },
+    {
+      "name": "allowedVesselTypes",
+      "type": "string",
+      "description": "JSON array of allowed vessel types"
+    },
+    {
+      "name": "validationTimestamp",
+      "type": "string"
+    }
+  ]
+}

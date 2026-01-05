@@ -1,0 +1,50 @@
+{
+  "key": "reg001-invoice-expired",
+  "category": "event",
+  "name": "Invoice Expired",
+  "description": "Invoice has expired without payment. انتهاء صلاحية الفاتورة",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "invoiceNumber",
+      "type": "string"
+    },
+    {
+      "name": "civilId",
+      "type": "string"
+    },
+    {
+      "name": "totalAmount",
+      "type": "double"
+    },
+    {
+      "name": "issuedDate",
+      "type": "string"
+    },
+    {
+      "name": "expiryDate",
+      "type": "string"
+    },
+    {
+      "name": "expiredTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "canReissue",
+      "type": "boolean"
+    },
+    {
+      "name": "nameReservationReleased",
+      "type": "boolean",
+      "description": "Was the vessel name reservation released?"
+    }
+  ]
+}

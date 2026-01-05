@@ -1,0 +1,45 @@
+{
+  "key": "reg001-name-reserved",
+  "name": "REG-001 Vessel Name Reserved",
+  "description": "تم حجز اسم السفينة - Vessel name has been reserved with timeout",
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "reservationId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "reservationId",
+      "type": "string"
+    },
+    {
+      "name": "vesselName",
+      "type": "string"
+    },
+    {
+      "name": "vesselNameArabic",
+      "type": "string"
+    },
+    {
+      "name": "reservedAt",
+      "type": "string"
+    },
+    {
+      "name": "expiresAt",
+      "type": "string"
+    },
+    {
+      "name": "reservationDurationDays",
+      "type": "integer"
+    }
+  ]
+}

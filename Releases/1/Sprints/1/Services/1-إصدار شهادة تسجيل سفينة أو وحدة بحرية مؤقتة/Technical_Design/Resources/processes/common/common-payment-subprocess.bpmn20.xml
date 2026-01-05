@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://mtcit.gov.om/common"
+             id="common-payment-subprocess-definitions"
+             name="Common Payment Subprocess">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       Common Payment Subprocess: دورة سداد الرسوم
+       Payment Processing Sub-Process
+       
+       Purpose: Handle payment processing via Bank Muscat ePayment Gateway
+                This is a reusable subprocess that can be called from any service.
+       
+       Reference: sprint1.docx Annex-2, Section 4 (دورة السداد الرسوم)
+       
+       Inputs:
+         - requestId: string (parent request ID)
+         - serviceCode: string (e.g., MTCIT-REG-001)
+         - applicantId: string (beneficiary ID)
+         - baseFee: number (base service fee)
+         - additionalFees: number (penalties, surcharges, etc.)
+         - feeDescription: string (description of fees)
+       
+       Outputs:
+         - paymentStatus: string (SUCCESS, FAILED, CANCELLED, EXPIRED)
+         - paymentReference: string (payment transaction reference)
+         - paymentReceipt: string (receipt document ID)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <error id="err-payment-failed" name="Payment Failed" errorCode="ERR_PAY_001"/>
+  <error id="err-payment-cancelled" name="Payment Cancelled" errorCode="ERR_PAY_002"/>
+  <error id="err-payment-expired" name="Payment Expired" errorCode="ERR_PAY_003"/>
+
+  <process id="common-payment-subprocess" name="دورة سداد الرسوم" isExecutable="true">
+
+    <documentation>
+      دورة سداد الرسوم - Payment Processing Subprocess
+      
+      Handles electronic payment via Bank Muscat ePayment Gateway.
+      Supports multiple payment methods: credit card, bank account, QR code.
+    </documentation>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         START EVENT
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <startEvent id="startEvent" name="بدء السداد">
+      <documentation>Start payment subprocess</documentation>
+    </startEvent>
+    <sequenceFlow id="flow_start" sourceRef="startEvent" targetRef="st_prepareInvoice"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 1: Prepare Invoice (تجهيز الفاتورة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_prepareInvoice" name="تجهيز الفاتورة"
+                 flowable:delegateExpression="${prepareInvoiceDelegate}">
+      <documentation>
+        Prepare invoice with all fee components
+        إعداد الفاتورة الإلكترونية آلياً طبقاً لإعدادات الخدمة
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_prepare_to_calculate" sourceRef="st_prepareInvoice" targetRef="st_calculateTotalFees"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 2: Calculate Total Fees (حساب الرسوم الإجمالية)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_calculateTotalFees" name="حساب الرسوم الإجمالية"
+                 flowable:delegateExpression="${calculateTotalFeesDelegate}">
+      <documentation>
+        Apply fee calculation rules and add any penalties
+        تطبيق معادلات الرسوم المحددة في إعدادات الخدمة
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_calculate_to_generate" sourceRef="st_calculateTotalFees" targetRef="st_generateInvoice"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 3: Generate Invoice (إصدار الفاتورة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_generateInvoice" name="إصدار الفاتورة"
+                 flowable:delegateExpression="${generateInvoiceDelegate}">
+      <documentation>
+        Generate unique invoice number and create invoice document
+        توليد رقم فاتورة فريد وربطها برقم الطلب
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_generate_to_display" sourceRef="st_generateInvoice" targetRef="ut_displayInvoice"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 4: Display Invoice to Applicant (عرض الفاتورة)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <userTask id="ut_displayInvoice" name="عرض الفاتورة للمستفيد"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        Display invoice details to applicant for confirmation
+        عرض بيانات الفاتورة للمستفيد عبر شاشة السداد
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="invoiceNumber" name="رقم الفاتورة" type="string" readable="true" writable="false"/>
+        <flowable:formProperty id="serviceName" name="اسم الخدمة" type="string" readable="true" writable="false"/>
+        <flowable:formProperty id="baseFee" name="الرسوم الأساسية" type="double" readable="true" writable="false"/>
+        <flowable:formProperty id="additionalFees" name="رسوم إضافية" type="double" readable="true" writable="false"/>
+        <flowable:formProperty id="penalties" name="الغرامات" type="double" readable="true" writable="false"/>
+        <flowable:formProperty id="totalAmount" name="المبلغ الإجمالي" type="double" readable="true" writable="false"/>
+        <flowable:formProperty id="currency" name="العملة" type="string" readable="true" writable="false" default="OMR"/>
+        <flowable:formProperty id="confirmPayment" name="تأكيد الدفع" type="boolean" required="true"/>
+        <flowable:formProperty id="paymentMethod" name="طريقة الدفع" type="enum" required="true">
+          <flowable:value id="CARD" name="بطاقة ائتمان/خصم"/>
+          <flowable:value id="BANK_ACCOUNT" name="حساب بنكي"/>
+          <flowable:value id="QR" name="QR Code"/>
+        </flowable:formProperty>
+      </extensionElements>
+    </userTask>
+    <boundaryEvent id="timer_invoiceExpiry" attachedToRef="ut_displayInvoice" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>PT24H</timeDuration> <!-- 24 hours to confirm payment -->
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_invoice_confirmed" sourceRef="ut_displayInvoice" targetRef="gw_paymentConfirmed"/>
+    <sequenceFlow id="flow_invoice_expired" sourceRef="timer_invoiceExpiry" targetRef="st_cancelInvoice"/>
+
+    <!-- Gateway: Payment Confirmed? -->
+    <exclusiveGateway id="gw_paymentConfirmed" name="تأكيد الدفع؟"/>
+    <sequenceFlow id="flow_confirmed" sourceRef="gw_paymentConfirmed" targetRef="st_redirectToPaymentGateway">
+      <conditionExpression xsi:type="tFormalExpression">${confirmPayment == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_notConfirmed" sourceRef="gw_paymentConfirmed" targetRef="st_cancelInvoice">
+      <conditionExpression xsi:type="tFormalExpression">${confirmPayment != true}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 5: Redirect to Payment Gateway (التحويل لبوابة السداد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_redirectToPaymentGateway" name="التحويل لصفحة السداد"
+                 flowable:delegateExpression="${redirectToPaymentGatewayDelegate}">
+      <documentation>
+        Redirect user to Bank Muscat ePayment Gateway
+        إعادة توجيه المستخدم إلى واجهة الدفع الإلكتروني عبر API آمن
+      </documentation>
+      <extensionElements>
+        <flowable:field name="paymentGateway" stringValue="BANK_MUSCAT"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_redirect_to_wait" sourceRef="st_redirectToPaymentGateway" targetRef="receive_paymentCallback"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 6: Wait for Payment Callback (انتظار الرد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <receiveTask id="receive_paymentCallback" name="انتظار تأكيد السداد">
+      <documentation>
+        Wait for payment callback from Bank Muscat
+        انتظار رد بوابة السداد
+      </documentation>
+    </receiveTask>
+    <boundaryEvent id="timer_paymentCallback" attachedToRef="receive_paymentCallback" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>PT30M</timeDuration> <!-- 30 minutes to complete payment -->
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_payment_received" sourceRef="receive_paymentCallback" targetRef="st_processPaymentResult"/>
+    <sequenceFlow id="flow_payment_timeout" sourceRef="timer_paymentCallback" targetRef="ut_paymentTimeout"/>
+
+    <!-- User Task: Payment Timeout -->
+    <userTask id="ut_paymentTimeout" name="انتهت مهلة السداد"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        Payment timeout - allow user to retry
+        انتهت مهلة السداد - السماح للمستفيد بإعادة المحاولة
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="retryPayment" name="إعادة المحاولة" type="boolean" required="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_timeout_decision" sourceRef="ut_paymentTimeout" targetRef="gw_retryDecision"/>
+
+    <!-- Gateway: Retry Payment? -->
+    <exclusiveGateway id="gw_retryDecision" name="إعادة المحاولة؟"/>
+    <sequenceFlow id="flow_retry" sourceRef="gw_retryDecision" targetRef="st_redirectToPaymentGateway">
+      <conditionExpression xsi:type="tFormalExpression">${retryPayment == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_noRetry" sourceRef="gw_retryDecision" targetRef="st_cancelInvoice">
+      <conditionExpression xsi:type="tFormalExpression">${retryPayment != true}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 7: Process Payment Result (معالجة نتيجة السداد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_processPaymentResult" name="معالجة نتيجة السداد"
+                 flowable:delegateExpression="${processPaymentResultDelegate}">
+      <documentation>
+        Process payment callback and update payment status
+        استلام نتيجة السداد وتحديث حالة الفاتورة
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_process_to_gateway" sourceRef="st_processPaymentResult" targetRef="gw_paymentResult"/>
+
+    <!-- Gateway: Payment Result -->
+    <exclusiveGateway id="gw_paymentResult" name="نتيجة السداد؟"/>
+    <sequenceFlow id="flow_success" sourceRef="gw_paymentResult" targetRef="st_generateReceipt">
+      <conditionExpression xsi:type="tFormalExpression">${paymentStatus == 'SUCCESS'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_failed" sourceRef="gw_paymentResult" targetRef="ut_paymentFailed">
+      <conditionExpression xsi:type="tFormalExpression">${paymentStatus == 'FAILED'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- User Task: Payment Failed -->
+    <userTask id="ut_paymentFailed" name="فشل السداد"
+              flowable:assignee="${applicantId}">
+      <documentation>
+        Payment failed - allow user to retry or cancel
+        فشل السداد - السماح للمستفيد بإعادة المحاولة أو الإلغاء
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="failureReason" name="سبب الفشل" type="string" readable="true" writable="false"/>
+        <flowable:formProperty id="retryPayment" name="إعادة المحاولة" type="boolean" required="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_failed_decision" sourceRef="ut_paymentFailed" targetRef="gw_retryAfterFailure"/>
+
+    <!-- Gateway: Retry After Failure -->
+    <exclusiveGateway id="gw_retryAfterFailure" name="إعادة بعد الفشل؟"/>
+    <sequenceFlow id="flow_retryAfterFailure" sourceRef="gw_retryAfterFailure" targetRef="st_redirectToPaymentGateway">
+      <conditionExpression xsi:type="tFormalExpression">${retryPayment == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_cancelAfterFailure" sourceRef="gw_retryAfterFailure" targetRef="st_cancelInvoice">
+      <conditionExpression xsi:type="tFormalExpression">${retryPayment != true}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 8: Generate Receipt (إصدار الإيصال)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_generateReceipt" name="إصدار إيصال السداد"
+                 flowable:delegateExpression="${generatePaymentReceiptDelegate}">
+      <documentation>
+        Generate payment receipt document
+        إصدار إيصال دفع إلكتروني
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_receipt_to_update" sourceRef="st_generateReceipt" targetRef="st_updatePaymentStatus"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 9: Update Payment Status (تحديث حالة السداد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_updatePaymentStatus" name="تحديث حالة السداد"
+                 flowable:delegateExpression="${updatePaymentStatusDelegate}">
+      <documentation>
+        Update payment status in parent request
+        تحديث حالة السداد في قاعدة بيانات الخدمة الأصلية
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_update_to_notify" sourceRef="st_updatePaymentStatus" targetRef="st_sendPaymentNotification"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 10: Send Payment Notification (إرسال إشعار السداد)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_sendPaymentNotification" name="إرسال إشعار السداد"
+                 flowable:delegateExpression="${paymentNotificationDelegate}">
+      <documentation>
+        Send payment confirmation notification to applicant
+        إرسال إشعار تأكيد السداد للمستفيد
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_notify_to_end" sourceRef="st_sendPaymentNotification" targetRef="endEvent_success"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         Cancel Invoice
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_cancelInvoice" name="إلغاء الفاتورة"
+                 flowable:delegateExpression="${cancelInvoiceDelegate}">
+      <documentation>
+        Cancel the invoice due to timeout or user cancellation
+        إلغاء الفاتورة بسبب انتهاء المهلة أو إلغاء المستفيد
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_cancel_to_end" sourceRef="st_cancelInvoice" targetRef="endEvent_cancelled"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         END EVENTS
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <endEvent id="endEvent_success" name="سداد ناجح">
+      <documentation>Payment completed successfully</documentation>
+    </endEvent>
+
+    <endEvent id="endEvent_cancelled" name="سداد ملغي">
+      <documentation>Payment was cancelled or expired</documentation>
+      <errorEventDefinition errorRef="err-payment-cancelled"/>
+    </endEvent>
+
+  </process>
+
+</definitions>

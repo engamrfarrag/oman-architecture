@@ -1,0 +1,57 @@
+{
+  "key": "reg001-bayan-customs-rejected",
+  "category": "event",
+  "name": "Bayan Customs Rejected",
+  "description": "Customs clearance rejected from نظام بيان. رفض الإفراج الجمركي",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "importDeclarationNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "importDeclarationNumber",
+      "type": "string"
+    },
+    {
+      "name": "rejectionCode",
+      "type": "string",
+      "description": "DECLARATION_NOT_FOUND, DUTIES_UNPAID, PROHIBITED_VESSEL, DOCUMENTATION_INCOMPLETE, SANCTIONS_MATCH"
+    },
+    {
+      "name": "rejectionReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "rejectionReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "rejectionDate",
+      "type": "string"
+    },
+    {
+      "name": "requiredActions",
+      "type": "string",
+      "description": "JSON array of required corrective actions"
+    }
+  ]
+}

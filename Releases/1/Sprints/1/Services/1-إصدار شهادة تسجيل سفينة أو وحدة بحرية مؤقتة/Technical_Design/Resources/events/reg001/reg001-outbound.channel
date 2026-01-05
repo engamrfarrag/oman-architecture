@@ -1,0 +1,21 @@
+{
+  "key": "reg001-outbound-channel",
+  "category": "channel",
+  "name": "REG-001 Temporary Registration Outbound Channel",
+  "description": "قناة إرسال أحداث تسجيل السفن المؤقت - Kafka outbound channel for publishing REG-001 requests to external integrations",
+  "channelType": "outbound",
+  "type": "kafka",
+  "serializerType": "json",
+  "topics": [
+    "mtcit.reg001.investeasy.cr-request",
+    "mtcit.reg001.investeasy.activity-request",
+    "mtcit.reg001.mafwr.fishing-request",
+    "mtcit.reg001.maritime.inspection-request",
+    "mtcit.reg001.bayan.customs-request",
+    "mtcit.reg001.bankmuscat.invoice",
+    "mtcit.reg001.bankmuscat.payment-request",
+    "mtcit.reg001.applicant.notification",
+    "mtcit.reg001.vessel.name-reservation",
+    "mtcit.reg001.certificate.issuance"
+  ]
+}

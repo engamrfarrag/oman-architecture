@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://mtcit.gov.om/reg001"
+             id="reg001-inspection-subprocess-definitions"
+             name="REG-001 Inspection Subprocess">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001 Inspection Subprocess: دورة المعاينة
+       Vessel Inspection Sub-Process
+       
+       Purpose: Perform technical inspection of vessel by Classification Societies 
+                or Consulting Offices to verify compliance with maritime standards.
+       
+       Called from: reg001-temporary-registration-main.bpmn20.xml
+       
+       Inputs:
+         - requestId: string (parent request ID)
+         - vesselCategory: string (type of vessel)
+         - vesselLength: number (length in meters)
+         - grossTonnage: number (GT)
+         - inspectionType: string (SURVEY, CLASSIFICATION, CONSULTANCY)
+       
+       Outputs:
+         - inspectionResult: string (PASSED, FAILED, CONDITIONAL)
+         - inspectionReportId: string (reference to inspection report document)
+         - inspectionNotes: string (any notes from inspector)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <error id="err-inspection-cancelled" name="Inspection Cancelled" errorCode="ERR_INS_CANCEL"/>
+  <error id="err-inspection-timeout" name="Inspection Timeout" errorCode="ERR_INS_TIMEOUT"/>
+
+  <process id="reg001-inspection-subprocess" name="دورة المعاينة - REG-001" isExecutable="true">
+
+    <documentation>
+      دورة المعاينة للسفن والوحدات البحرية
+      Vessel Inspection Subprocess
+      
+      This subprocess handles the technical inspection of vessels by:
+      - Classification Societies (هيئات التصنيف)
+      - Consulting Offices (الشركات الاستشارية)
+      - MTCIT Technical Staff (موظفي الوزارة الفنيين)
+    </documentation>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         EVENT SUBPROCESSES: Negative external responses (interrupting)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <subProcess id="esp_inspectionFailed" name="فشل المعاينة" triggeredByEvent="true">
+      <startEvent id="se_inspectionFailed" name="رد فشل المعاينة" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-inspection-failed</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="failureCode" target="inspectionFailureCode"/>
+          <flowable:eventInParameter source="failureReasonArabic" target="inspectionFailureReasonAr"/>
+          <flowable:eventInParameter source="failureReasonEnglish" target="inspectionFailureReasonEn"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-inspection-failed"/>
+      </startEvent>
+      <sequenceFlow id="flow_inspectionFailed_to_end" sourceRef="se_inspectionFailed" targetRef="end_inspectionFailed"/>
+      <endEvent id="end_inspectionFailed" name="معاينة فاشلة">
+        <errorEventDefinition errorRef="err-inspection-cancelled"/>
+      </endEvent>
+    </subProcess>
+
+    <subProcess id="esp_inspectionCancelled" name="إلغاء المعاينة" triggeredByEvent="true">
+      <startEvent id="se_inspectionCancelled" name="رد إلغاء المعاينة" isInterrupting="true">
+        <extensionElements>
+          <flowable:eventType>reg001-inspection-cancelled</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-inspection-cancelled"/>
+      </startEvent>
+      <sequenceFlow id="flow_inspectionCancelled_to_end" sourceRef="se_inspectionCancelled" targetRef="end_inspectionCancelled_by_event"/>
+      <endEvent id="end_inspectionCancelled_by_event" name="معاينة ملغاة">
+        <errorEventDefinition errorRef="err-inspection-cancelled"/>
+      </endEvent>
+    </subProcess>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         START EVENT
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <startEvent id="startEvent" name="بدء المعاينة">
+      <documentation>Start inspection subprocess</documentation>
+    </startEvent>
+    <sequenceFlow id="flow_start" sourceRef="startEvent" targetRef="st_determineInspectionType"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         STEP 1: Determine Inspection Type
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_determineInspectionType" name="تحديد نوع المعاينة"
+                 flowable:type="dmn">
+      <documentation>
+        Determine the type of inspection required based on vessel attributes
+        تحديد نوع المعاينة المطلوبة بناءً على خصائص الوحدة
+      </documentation>
+      <extensionElements>
+        <flowable:field name="decisionTableReferenceKey" stringValue="reg001-inspection-required"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_type_to_gateway" sourceRef="st_determineInspectionType" targetRef="gw_inspectionType"/>
+
+    <!-- Gateway: Inspection Type -->
+    <exclusiveGateway id="gw_inspectionType" name="نوع المعاينة؟"/>
+    <sequenceFlow id="flow_classificationSurvey" sourceRef="gw_inspectionType" targetRef="st_assignClassificationSociety">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionType == 'CLASSIFICATION'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_consultancyInspection" sourceRef="gw_inspectionType" targetRef="st_assignConsultant">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionType == 'CONSULTANCY'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_internalInspection" sourceRef="gw_inspectionType" targetRef="ut_internalInspection">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionType == 'INTERNAL'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         PATH A: Classification Society Survey (معاينة هيئة التصنيف)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_assignClassificationSociety" name="تعيين هيئة التصنيف"
+                 flowable:delegateExpression="${assignClassificationSocietyDelegate}">
+      <documentation>
+        Assign inspection to a Classification Society
+        تعيين المعاينة لهيئة تصنيف معتمدة
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_class_to_request" sourceRef="st_assignClassificationSociety" targetRef="st_sendInspectionRequest"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         PATH B: Consultancy Inspection (معاينة الشركة الاستشارية)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_assignConsultant" name="تعيين الشركة الاستشارية"
+                 flowable:delegateExpression="${assignConsultantDelegate}">
+      <documentation>
+        Assign inspection to a Consulting Office
+        تعيين المعاينة لشركة استشارية معتمدة
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_consult_to_request" sourceRef="st_assignConsultant" targetRef="st_sendInspectionRequest"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         PATH C: Internal MTCIT Inspection (معاينة داخلية)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <userTask id="ut_internalInspection" name="إجراء المعاينة الداخلية"
+              flowable:candidateGroups="inspection_department">
+      <documentation>
+        Internal inspection by MTCIT technical staff
+        معاينة داخلية من قبل موظفي الوزارة الفنيين
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="inspectionDate" name="تاريخ المعاينة" type="date" required="true"/>
+        <flowable:formProperty id="inspectorName" name="اسم المعاين" type="string" required="true"/>
+        <flowable:formProperty id="inspectionLocation" name="موقع المعاينة" type="string"/>
+        <flowable:formProperty id="hullCondition" name="حالة الهيكل" type="enum">
+          <flowable:value id="EXCELLENT" name="ممتاز"/>
+          <flowable:value id="GOOD" name="جيد"/>
+          <flowable:value id="FAIR" name="مقبول"/>
+          <flowable:value id="POOR" name="ضعيف"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="engineCondition" name="حالة المحرك" type="enum">
+          <flowable:value id="EXCELLENT" name="ممتاز"/>
+          <flowable:value id="GOOD" name="جيد"/>
+          <flowable:value id="FAIR" name="مقبول"/>
+          <flowable:value id="POOR" name="ضعيف"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="safetyEquipment" name="معدات السلامة" type="enum">
+          <flowable:value id="COMPLIANT" name="مطابق"/>
+          <flowable:value id="PARTIAL" name="جزئي"/>
+          <flowable:value id="NON_COMPLIANT" name="غير مطابق"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="navigationEquipment" name="معدات الملاحة" type="enum">
+          <flowable:value id="COMPLIANT" name="مطابق"/>
+          <flowable:value id="PARTIAL" name="جزئي"/>
+          <flowable:value id="NON_COMPLIANT" name="غير مطابق"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="inspectionResult" name="نتيجة المعاينة" type="enum" required="true">
+          <flowable:value id="PASSED" name="ناجح - مطابق"/>
+          <flowable:value id="FAILED" name="فاشل - غير مطابق"/>
+          <flowable:value id="CONDITIONAL" name="مشروط"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="inspectionNotes" name="ملاحظات" type="string"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_internal_to_report" sourceRef="ut_internalInspection" targetRef="st_generateInspectionReport"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         Send Inspection Request (External)
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_sendInspectionRequest" name="إرسال طلب المعاينة"
+                 flowable:type="send-event">
+      <documentation>
+        Send inspection request to assigned entity
+        إرسال طلب المعاينة للجهة المعينة
+      </documentation>
+      <extensionElements>
+        <flowable:eventType>reg001-inspection-request</flowable:eventType>
+        <flowable:channelKey>reg001-outbound-channel</flowable:channelKey>
+        <flowable:eventOutParameter source="requestId" target="requestId"/>
+        <flowable:eventOutParameter source="vesselCategory" target="vesselCategory"/>
+        <flowable:eventOutParameter source="vesselLength" target="vesselLength"/>
+        <flowable:eventOutParameter source="grossTonnage" target="grossTonnage"/>
+        <flowable:eventOutParameter source="inspectionType" target="inspectionType"/>
+        <flowable:eventOutParameter sourceExpression="${'reg001-inspection-request'}" target="eventType"/>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow_request_to_wait" sourceRef="st_sendInspectionRequest" targetRef="sp_waitInspectionPassed"/>
+
+    <!-- Wait for Inspection passed response (Event Registry) -->
+    <subProcess id="sp_waitInspectionPassed" name="انتظار نتيجة المعاينة">
+      <startEvent id="se_waitInspectionPassed"/>
+      <sequenceFlow id="flow_waitInspection_start_to_catch" sourceRef="se_waitInspectionPassed" targetRef="ice_inspectionPassed"/>
+      <intermediateCatchEvent id="ice_inspectionPassed" name="نجح الفحص">
+        <extensionElements>
+          <flowable:eventType>reg001-inspection-passed</flowable:eventType>
+          <flowable:eventCorrelationParameter name="requestId" value="${requestId}"/>
+          <flowable:eventInParameter source="inspectionReportId" target="inspectionReportId"/>
+          <flowable:eventInParameter source="inspectionNotes" target="inspectionNotes"/>
+          <flowable:eventInParameter source="inspectionDate" target="inspectionDate"/>
+        </extensionElements>
+        <eventDefinition xsi:type="flowable:eventRegistryEventDefinition" eventType="reg001-inspection-passed"/>
+      </intermediateCatchEvent>
+      <sequenceFlow id="flow_waitInspection_to_end" sourceRef="ice_inspectionPassed" targetRef="end_waitInspectionPassed"/>
+      <endEvent id="end_waitInspectionPassed"/>
+    </subProcess>
+    <boundaryEvent id="timer_inspectionResponse" attachedToRef="sp_waitInspectionPassed" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>P14D</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_inspection_timeout" sourceRef="timer_inspectionResponse" targetRef="ut_inspectionEscalation"/>
+    <sequenceFlow id="flow_inspection_response" sourceRef="sp_waitInspectionPassed" targetRef="st_processInspectionResult"/>
+
+    <!-- User Task: Inspection Escalation -->
+    <userTask id="ut_inspectionEscalation" name="متابعة طلب المعاينة"
+              flowable:candidateGroups="registration_department">
+      <documentation>
+        Escalation when inspection response is not received in time
+        متابعة طلب المعاينة عند عدم الرد في الوقت المحدد
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="escalationAction" name="الإجراء" type="enum" required="true">
+          <flowable:value id="RETRY" name="إعادة الطلب"/>
+          <flowable:value id="REASSIGN" name="تعيين جهة أخرى"/>
+          <flowable:value id="CANCEL" name="إلغاء المعاينة"/>
+        </flowable:formProperty>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_escalation_to_gateway" sourceRef="ut_inspectionEscalation" targetRef="gw_escalationAction"/>
+
+    <!-- Gateway: Escalation Action -->
+    <exclusiveGateway id="gw_escalationAction" name="إجراء المتابعة؟"/>
+    <sequenceFlow id="flow_retry" sourceRef="gw_escalationAction" targetRef="st_sendInspectionRequest">
+      <conditionExpression xsi:type="tFormalExpression">${escalationAction == 'RETRY'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_reassign" sourceRef="gw_escalationAction" targetRef="gw_inspectionType">
+      <conditionExpression xsi:type="tFormalExpression">${escalationAction == 'REASSIGN'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_cancel" sourceRef="gw_escalationAction" targetRef="endEvent_cancelled">
+      <conditionExpression xsi:type="tFormalExpression">${escalationAction == 'CANCEL'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         Process Inspection Result
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_processInspectionResult" name="معالجة نتيجة المعاينة"
+                 flowable:delegateExpression="${processInspectionResultDelegate}">
+      <documentation>
+        Process and validate the inspection result
+        معالجة والتحقق من نتيجة المعاينة
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_process_to_report" sourceRef="st_processInspectionResult" targetRef="st_generateInspectionReport"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         Generate Inspection Report
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <serviceTask id="st_generateInspectionReport" name="إنشاء تقرير المعاينة"
+                 flowable:delegateExpression="${generateInspectionReportDelegate}">
+      <documentation>
+        Generate the official inspection report document
+        إنشاء تقرير المعاينة الرسمي
+      </documentation>
+    </serviceTask>
+    <sequenceFlow id="flow_report_to_gateway" sourceRef="st_generateInspectionReport" targetRef="gw_inspectionResult"/>
+
+    <!-- Gateway: Inspection Result -->
+    <exclusiveGateway id="gw_inspectionResult" name="نتيجة المعاينة؟"/>
+    <sequenceFlow id="flow_passed" sourceRef="gw_inspectionResult" targetRef="endEvent_passed">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionResult == 'PASSED'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_conditional" sourceRef="gw_inspectionResult" targetRef="ut_handleConditionalResult">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionResult == 'CONDITIONAL'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_failed" sourceRef="gw_inspectionResult" targetRef="ut_reviewFailedInspection">
+      <conditionExpression xsi:type="tFormalExpression">${inspectionResult == 'FAILED'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- User Task: Handle Conditional Result -->
+    <userTask id="ut_handleConditionalResult" name="معالجة النتيجة المشروطة"
+              flowable:candidateGroups="registration_department">
+      <documentation>
+        Review conditional inspection result and decide next steps
+        مراجعة نتيجة المعاينة المشروطة واتخاذ القرار
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="conditionalDecision" name="القرار" type="enum" required="true">
+          <flowable:value id="ACCEPT" name="قبول مع الشروط"/>
+          <flowable:value id="REINSPECT" name="إعادة المعاينة"/>
+          <flowable:value id="REJECT" name="رفض"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="conditions" name="الشروط المطلوبة" type="string"/>
+        <flowable:formProperty id="deadline" name="المهلة" type="date"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_conditional_to_gateway" sourceRef="ut_handleConditionalResult" targetRef="gw_conditionalDecision"/>
+
+    <!-- Gateway: Conditional Decision -->
+    <exclusiveGateway id="gw_conditionalDecision" name="قرار الشرط؟"/>
+    <sequenceFlow id="flow_acceptConditional" sourceRef="gw_conditionalDecision" targetRef="endEvent_passed">
+      <conditionExpression xsi:type="tFormalExpression">${conditionalDecision == 'ACCEPT'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_reinspect" sourceRef="gw_conditionalDecision" targetRef="gw_inspectionType">
+      <conditionExpression xsi:type="tFormalExpression">${conditionalDecision == 'REINSPECT'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_rejectConditional" sourceRef="gw_conditionalDecision" targetRef="endEvent_failed">
+      <conditionExpression xsi:type="tFormalExpression">${conditionalDecision == 'REJECT'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- User Task: Review Failed Inspection -->
+    <userTask id="ut_reviewFailedInspection" name="مراجعة المعاينة الفاشلة"
+              flowable:candidateGroups="registration_department">
+      <documentation>
+        Review failed inspection and decide if appeal is possible
+        مراجعة المعاينة الفاشلة وتحديد إمكانية الاستئناف
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="failedDecision" name="القرار" type="enum" required="true">
+          <flowable:value id="APPEAL" name="استئناف"/>
+          <flowable:value id="REINSPECT" name="إعادة المعاينة"/>
+          <flowable:value id="REJECT" name="رفض نهائي"/>
+        </flowable:formProperty>
+        <flowable:formProperty id="reviewNotes" name="ملاحظات المراجعة" type="string"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_failed_to_gateway" sourceRef="ut_reviewFailedInspection" targetRef="gw_failedDecision"/>
+
+    <!-- Gateway: Failed Decision -->
+    <exclusiveGateway id="gw_failedDecision" name="قرار الفشل؟"/>
+    <sequenceFlow id="flow_appeal" sourceRef="gw_failedDecision" targetRef="ut_appealProcess">
+      <conditionExpression xsi:type="tFormalExpression">${failedDecision == 'APPEAL'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_reinspectFailed" sourceRef="gw_failedDecision" targetRef="gw_inspectionType">
+      <conditionExpression xsi:type="tFormalExpression">${failedDecision == 'REINSPECT'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_finalReject" sourceRef="gw_failedDecision" targetRef="endEvent_failed">
+      <conditionExpression xsi:type="tFormalExpression">${failedDecision == 'REJECT'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- User Task: Appeal Process -->
+    <userTask id="ut_appealProcess" name="عملية الاستئناف"
+              flowable:candidateGroups="senior_management">
+      <documentation>
+        Appeal process for failed inspection
+        عملية استئناف نتيجة المعاينة الفاشلة
+      </documentation>
+      <extensionElements>
+        <flowable:formProperty id="appealDecision" name="قرار الاستئناف" type="enum" required="true">
+          <flowable:value id="APPROVED" name="قبول"/>
+          <flowable:value id="REJECTED" name="رفض"/>
+        </flowable:formProperty>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="flow_appeal_to_gateway" sourceRef="ut_appealProcess" targetRef="gw_appealDecision"/>
+
+    <!-- Gateway: Appeal Decision -->
+    <exclusiveGateway id="gw_appealDecision" name="قرار الاستئناف؟"/>
+    <sequenceFlow id="flow_appealApproved" sourceRef="gw_appealDecision" targetRef="gw_inspectionType">
+      <conditionExpression xsi:type="tFormalExpression">${appealDecision == 'APPROVED'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_appealRejected" sourceRef="gw_appealDecision" targetRef="endEvent_failed">
+      <conditionExpression xsi:type="tFormalExpression">${appealDecision == 'REJECTED'}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- ════════════════════════════════════════════════════════════════════════════════════════════
+         END EVENTS
+         ════════════════════════════════════════════════════════════════════════════════════════════ -->
+    <endEvent id="endEvent_passed" name="معاينة ناجحة">
+      <documentation>Inspection passed successfully</documentation>
+    </endEvent>
+
+    <endEvent id="endEvent_failed" name="معاينة فاشلة">
+      <documentation>Inspection failed</documentation>
+      <errorEventDefinition errorRef="err-inspection-cancelled"/>
+    </endEvent>
+
+    <endEvent id="endEvent_cancelled" name="معاينة ملغاة">
+      <documentation>Inspection was cancelled</documentation>
+      <errorEventDefinition errorRef="err-inspection-cancelled"/>
+    </endEvent>
+
+  </process>
+
+</definitions>

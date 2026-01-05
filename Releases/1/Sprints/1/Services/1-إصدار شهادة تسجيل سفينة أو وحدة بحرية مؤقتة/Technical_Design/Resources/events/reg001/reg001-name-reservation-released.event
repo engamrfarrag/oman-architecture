@@ -1,0 +1,37 @@
+{
+  "key": "reg001-name-reservation-released",
+  "name": "REG-001 Name Reservation Released",
+  "description": "تم تحرير حجز اسم السفينة - Vessel name reservation has been released (timeout/manual)",
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "reservationId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "reservationId",
+      "type": "string"
+    },
+    {
+      "name": "vesselName",
+      "type": "string"
+    },
+    {
+      "name": "releaseReason",
+      "type": "string"
+    },
+    {
+      "name": "releasedAt",
+      "type": "string"
+    }
+  ]
+}

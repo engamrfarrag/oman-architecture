@@ -1,0 +1,61 @@
+{
+  "key": "reg001-name-reservation-cancelled",
+  "category": "event",
+  "name": "Vessel Name Reservation Cancelled",
+  "description": "Vessel name reservation has been cancelled or expired. إلغاء حجز اسم السفينة",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "reservedName",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "reservedName",
+      "type": "string",
+      "description": "الاسم المحجوز"
+    },
+    {
+      "name": "reservationId",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonCode",
+      "type": "string",
+      "description": "PAYMENT_TIMEOUT, USER_CANCELLED, DUPLICATE_NAME, PROHIBITED_NAME"
+    },
+    {
+      "name": "cancellationReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "reservationStartTime",
+      "type": "string"
+    },
+    {
+      "name": "cancellationTime",
+      "type": "string"
+    },
+    {
+      "name": "reservationDurationMinutes",
+      "type": "integer"
+    }
+  ]
+}

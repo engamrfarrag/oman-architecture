@@ -1,0 +1,19 @@
+{
+  "key": "sampleEvent",
+  "name": "Sample Event",
+  "outboundChannelKeys": ["sampleChannel"],
+  "payload": [
+    {
+      "name": "customerId",
+      "type": "string"
+    },
+    {
+      "name": "orderNumber",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": "double"
+    }
+  ]
+}

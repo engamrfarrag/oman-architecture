@@ -1,0 +1,22 @@
+{
+  "key": "reg001-inbound-channel",
+  "category": "channel",
+  "name": "REG-001 Temporary Registration Inbound Channel",
+  "description": "قناة استقبال أحداث تسجيل السفن المؤقت - Kafka inbound channel for receiving REG-001 events from external integrations",
+  "channelType": "inbound",
+  "type": "kafka",
+  "deserializerType": "json",
+  "topics": [
+    "mtcit.reg001.investeasy.cr-validation",
+    "mtcit.reg001.investeasy.activity-validation",
+    "mtcit.reg001.mafwr.fishing-approval",
+    "mtcit.reg001.maritime.vessel-inspection",
+    "mtcit.reg001.bayan.customs-clearance",
+    "mtcit.reg001.bankmuscat.payment-response",
+    "mtcit.reg001.applicant.documents",
+    "mtcit.reg001.request.lifecycle"
+  ],
+  "channelEventKeyDetection": {
+    "jsonField": "eventType"
+  }
+}

@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-inspection-required-definitions"
+             name="REG-001 Inspection Required"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: Inspection Required Decision Table
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - تحديد متطلبات المعاينة
+       
+       Purpose: Determine if vessel inspection is required for registration
+       
+       Business Rules (from sprint1.docx):
+         1. Vessels under construction require inspection
+         2. Vessels >= 24m in length require inspection
+         3. Tugboats always require inspection (bollard pull verification)
+         4. Flag change vessels >= 24m require inspection
+         5. Vessels carrying passengers require safety inspection
+         6. Tankers require hazmat inspection
+         7. Vessels with expired classification require inspection
+       
+       Reference: MTCIT-REG-001, Section 5.1.6 (إعدادات المعاينة)
+       
+       Inputs:
+         - isUnderConstruction: boolean (vessel in construction phase)
+         - vesselLength: number (vessel length in meters)
+         - vesselCategory: string (vessel type)
+         - acquisitionType: string (NEW_BUILD, PURCHASE, FLAG_CHANGE)
+         - classificationExpired: boolean (classification certificate expired)
+         - hasPassengers: boolean (vessel carries passengers)
+       
+       Outputs:
+         - inspectionRequired: boolean (true if inspection needed)
+         - inspectionType: string (type of inspection required)
+         - inspectionTypeAr: string (inspection type in Arabic)
+         - inspectionPriority: string (URGENT, HIGH, NORMAL, LOW)
+         - inspectionNotes: string (additional notes)
+         - inspectionNotesAr: string (notes in Arabic)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-inspection-required" name="Inspection Required Decision">
+    <decisionTable id="inspectionRequiredDecisionTable" hitPolicy="FIRST">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_isUnderConstruction" label="Under Construction">
+        <inputExpression id="isUnderConstructionExpr" typeRef="boolean">
+          <text>isUnderConstruction</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_vesselLength" label="Vessel Length (m)">
+        <inputExpression id="vesselLengthExpr" typeRef="number">
+          <text>vesselLength</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_vesselCategory" label="Vessel Category">
+        <inputExpression id="vesselCategoryExpr" typeRef="string">
+          <text>vesselCategory</text>
+        </inputExpression>
+        <inputValues>
+          <text>"CARGO","TANKER","CONTAINER","BULK_CARRIER","PASSENGER","FISHING","NAVAL","RESEARCH","TUGBOAT","OFFSHORE","YACHT","FERRY","BOAT","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_acquisitionType" label="Acquisition Type">
+        <inputExpression id="acquisitionTypeExpr" typeRef="string">
+          <text>acquisitionType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"NEW_BUILD","PURCHASE","FLAG_CHANGE"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_classificationExpired" label="Classification Expired">
+        <inputExpression id="classificationExpiredExpr" typeRef="boolean">
+          <text>classificationExpired</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_hasPassengers" label="Carries Passengers">
+        <inputExpression id="hasPassengersExpr" typeRef="boolean">
+          <text>hasPassengers</text>
+        </inputExpression>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_inspectionRequired" name="inspectionRequired" label="Inspection Required" typeRef="boolean"/>
+      <output id="output_inspectionType" name="inspectionType" label="Inspection Type" typeRef="string"/>
+      <output id="output_inspectionTypeAr" name="inspectionTypeAr" label="Inspection Type (Arabic)" typeRef="string"/>
+      <output id="output_inspectionPriority" name="inspectionPriority" label="Inspection Priority" typeRef="string"/>
+      <output id="output_inspectionNotesEn" name="inspectionNotesEn" label="Notes (English)" typeRef="string"/>
+      <output id="output_inspectionNotesAr" name="inspectionNotesAr" label="Notes (Arabic)" typeRef="string"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: Under Construction - Construction Phase Inspection
+           تحت الإنشاء - معاينة مرحلة البناء
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_under_construction">
+        <description>Vessels under construction require construction phase inspection</description>
+        <inputEntry id="rule_under_construction_in_isUnderConstruction"><text>true</text></inputEntry>
+        <inputEntry id="rule_under_construction_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_under_construction_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_under_construction_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_under_construction_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_under_construction_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_under_construction_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_under_construction_out_inspectionType"><text>"CONSTRUCTION_PHASE"</text></outputEntry>
+        <outputEntry id="rule_under_construction_out_inspectionTypeAr"><text>"معاينة مرحلة البناء"</text></outputEntry>
+        <outputEntry id="rule_under_construction_out_inspectionPriority"><text>"URGENT"</text></outputEntry>
+        <outputEntry id="rule_under_construction_out_inspectionNotesEn"><text>"Construction phase inspection required before vessel completion"</text></outputEntry>
+        <outputEntry id="rule_under_construction_out_inspectionNotesAr"><text>"معاينة مرحلة البناء مطلوبة قبل اكتمال الوحدة البحرية"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 2: Tanker Vessels - Hazmat Inspection
+           ناقلات النفط والكيماويات - معاينة المواد الخطرة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tanker_hazmat">
+        <description>Tanker vessels require hazmat inspection</description>
+        <inputEntry id="rule_tanker_hazmat_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_tanker_hazmat_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_tanker_hazmat_in_vesselCategory"><text>"TANKER"</text></inputEntry>
+        <inputEntry id="rule_tanker_hazmat_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_tanker_hazmat_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_tanker_hazmat_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_tanker_hazmat_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_tanker_hazmat_out_inspectionType"><text>"HAZMAT_SAFETY"</text></outputEntry>
+        <outputEntry id="rule_tanker_hazmat_out_inspectionTypeAr"><text>"معاينة سلامة المواد الخطرة"</text></outputEntry>
+        <outputEntry id="rule_tanker_hazmat_out_inspectionPriority"><text>"URGENT"</text></outputEntry>
+        <outputEntry id="rule_tanker_hazmat_out_inspectionNotesEn"><text>"Hazardous materials safety inspection required for tankers"</text></outputEntry>
+        <outputEntry id="rule_tanker_hazmat_out_inspectionNotesAr"><text>"معاينة سلامة المواد الخطرة مطلوبة للناقلات"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3: Tugboat - Bollard Pull Verification
+           زوارق السحب - التحقق من قوة السحب
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tugboat_bollard">
+        <description>Tugboats require bollard pull verification inspection</description>
+        <inputEntry id="rule_tugboat_bollard_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_bollard_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_bollard_in_vesselCategory"><text>"TUGBOAT"</text></inputEntry>
+        <inputEntry id="rule_tugboat_bollard_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_bollard_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_bollard_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_tugboat_bollard_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_tugboat_bollard_out_inspectionType"><text>"BOLLARD_PULL"</text></outputEntry>
+        <outputEntry id="rule_tugboat_bollard_out_inspectionTypeAr"><text>"معاينة قوة السحب (بولارد بول)"</text></outputEntry>
+        <outputEntry id="rule_tugboat_bollard_out_inspectionPriority"><text>"HIGH"</text></outputEntry>
+        <outputEntry id="rule_tugboat_bollard_out_inspectionNotesEn"><text>"Bollard pull verification inspection required for tugboats"</text></outputEntry>
+        <outputEntry id="rule_tugboat_bollard_out_inspectionNotesAr"><text>"معاينة التحقق من قوة السحب مطلوبة لزوارق السحب"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 4: Passenger/Ferry - Safety Inspection
+           سفن الركاب/العبارات - معاينة السلامة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_passenger_safety">
+        <description>Passenger vessels require safety inspection</description>
+        <inputEntry id="rule_passenger_safety_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_vesselCategory"><text>"PASSENGER","FERRY"</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_passenger_safety_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_inspectionType"><text>"PASSENGER_SAFETY"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_inspectionTypeAr"><text>"معاينة سلامة الركاب"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_inspectionPriority"><text>"URGENT"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_inspectionNotesEn"><text>"Passenger safety inspection required for passenger vessels"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_inspectionNotesAr"><text>"معاينة سلامة الركاب مطلوبة لسفن الركاب"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5: Any Vessel Carrying Passengers
+           أي وحدة تحمل ركاب
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_has_passengers">
+        <description>Any vessel carrying passengers requires safety inspection</description>
+        <inputEntry id="rule_has_passengers_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_has_passengers_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_has_passengers_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_has_passengers_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_has_passengers_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_has_passengers_in_hasPassengers"><text>true</text></inputEntry>
+        <outputEntry id="rule_has_passengers_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_has_passengers_out_inspectionType"><text>"PASSENGER_SAFETY"</text></outputEntry>
+        <outputEntry id="rule_has_passengers_out_inspectionTypeAr"><text>"معاينة سلامة الركاب"</text></outputEntry>
+        <outputEntry id="rule_has_passengers_out_inspectionPriority"><text>"HIGH"</text></outputEntry>
+        <outputEntry id="rule_has_passengers_out_inspectionNotesEn"><text>"Safety inspection required for vessels carrying passengers"</text></outputEntry>
+        <outputEntry id="rule_has_passengers_out_inspectionNotesAr"><text>"معاينة السلامة مطلوبة للوحدات التي تحمل ركاب"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 6: Flag Change - Large Vessels (>=24m)
+           تغيير العلم - السفن الكبيرة (24 متر فأكثر)
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_flag_change_large">
+        <description>Flag change for vessels >= 24m requires inspection</description>
+        <inputEntry id="rule_flag_change_large_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_flag_change_large_in_vesselLength"><text>&gt;= 24</text></inputEntry>
+        <inputEntry id="rule_flag_change_large_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_flag_change_large_in_acquisitionType"><text>"FLAG_CHANGE"</text></inputEntry>
+        <inputEntry id="rule_flag_change_large_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_flag_change_large_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_flag_change_large_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_flag_change_large_out_inspectionType"><text>"FLAG_CHANGE_SURVEY"</text></outputEntry>
+        <outputEntry id="rule_flag_change_large_out_inspectionTypeAr"><text>"معاينة تغيير العلم"</text></outputEntry>
+        <outputEntry id="rule_flag_change_large_out_inspectionPriority"><text>"HIGH"</text></outputEntry>
+        <outputEntry id="rule_flag_change_large_out_inspectionNotesEn"><text>"Flag change survey required for vessels 24m and above"</text></outputEntry>
+        <outputEntry id="rule_flag_change_large_out_inspectionNotesAr"><text>"معاينة تغيير العلم مطلوبة للوحدات 24 متر فأكثر"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7: Large Vessels (>=24m) - General Inspection
+           السفن الكبيرة (24 متر فأكثر) - معاينة عامة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_large_vessel">
+        <description>Large vessels >= 24m require general inspection</description>
+        <inputEntry id="rule_large_vessel_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_large_vessel_in_vesselLength"><text>&gt;= 24</text></inputEntry>
+        <inputEntry id="rule_large_vessel_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_large_vessel_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_large_vessel_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_large_vessel_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_large_vessel_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_large_vessel_out_inspectionType"><text>"GENERAL_SURVEY"</text></outputEntry>
+        <outputEntry id="rule_large_vessel_out_inspectionTypeAr"><text>"معاينة عامة"</text></outputEntry>
+        <outputEntry id="rule_large_vessel_out_inspectionPriority"><text>"NORMAL"</text></outputEntry>
+        <outputEntry id="rule_large_vessel_out_inspectionNotesEn"><text>"General survey required for vessels 24m and above"</text></outputEntry>
+        <outputEntry id="rule_large_vessel_out_inspectionNotesAr"><text>"معاينة عامة مطلوبة للوحدات 24 متر فأكثر"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 8: Expired Classification - Re-survey
+           شهادة التصنيف منتهية - إعادة المعاينة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_expired_class">
+        <description>Expired classification requires re-survey</description>
+        <inputEntry id="rule_expired_class_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_expired_class_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_expired_class_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_expired_class_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_expired_class_in_classificationExpired"><text>true</text></inputEntry>
+        <inputEntry id="rule_expired_class_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_expired_class_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_expired_class_out_inspectionType"><text>"CLASSIFICATION_RESURVEY"</text></outputEntry>
+        <outputEntry id="rule_expired_class_out_inspectionTypeAr"><text>"إعادة معاينة التصنيف"</text></outputEntry>
+        <outputEntry id="rule_expired_class_out_inspectionPriority"><text>"HIGH"</text></outputEntry>
+        <outputEntry id="rule_expired_class_out_inspectionNotesEn"><text>"Classification re-survey required due to expired certificate"</text></outputEntry>
+        <outputEntry id="rule_expired_class_out_inspectionNotesAr"><text>"إعادة معاينة التصنيف مطلوبة بسبب انتهاء الشهادة"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9: Offshore Vessels - Offshore Safety Inspection
+           سفن الإمداد البحرية - معاينة السلامة البحرية
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_offshore_safety">
+        <description>Offshore vessels require offshore safety inspection</description>
+        <inputEntry id="rule_offshore_safety_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_offshore_safety_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_offshore_safety_in_vesselCategory"><text>"OFFSHORE"</text></inputEntry>
+        <inputEntry id="rule_offshore_safety_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_offshore_safety_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_offshore_safety_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_offshore_safety_out_inspectionRequired"><text>true</text></outputEntry>
+        <outputEntry id="rule_offshore_safety_out_inspectionType"><text>"OFFSHORE_SAFETY"</text></outputEntry>
+        <outputEntry id="rule_offshore_safety_out_inspectionTypeAr"><text>"معاينة السلامة للعمليات البحرية"</text></outputEntry>
+        <outputEntry id="rule_offshore_safety_out_inspectionPriority"><text>"HIGH"</text></outputEntry>
+        <outputEntry id="rule_offshore_safety_out_inspectionNotesEn"><text>"Offshore safety inspection required for offshore supply vessels"</text></outputEntry>
+        <outputEntry id="rule_offshore_safety_out_inspectionNotesAr"><text>"معاينة السلامة للعمليات البحرية مطلوبة لسفن الإمداد"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 10: Small Vessels (<12m) - No Inspection Required
+           الوحدات الصغيرة (أقل من 12 متر) - لا تتطلب معاينة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_small_no_inspection">
+        <description>Small vessels under 12m typically don't require inspection</description>
+        <inputEntry id="rule_small_no_inspection_in_isUnderConstruction"><text>false</text></inputEntry>
+        <inputEntry id="rule_small_no_inspection_in_vesselLength"><text>&lt; 12</text></inputEntry>
+        <inputEntry id="rule_small_no_inspection_in_vesselCategory"><text>"BOAT","YACHT"</text></inputEntry>
+        <inputEntry id="rule_small_no_inspection_in_acquisitionType"><text>"NEW_BUILD","PURCHASE"</text></inputEntry>
+        <inputEntry id="rule_small_no_inspection_in_classificationExpired"><text>false</text></inputEntry>
+        <inputEntry id="rule_small_no_inspection_in_hasPassengers"><text>false</text></inputEntry>
+        <outputEntry id="rule_small_no_inspection_out_inspectionRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_small_no_inspection_out_inspectionType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_small_no_inspection_out_inspectionTypeAr"><text>"لا تتطلب معاينة"</text></outputEntry>
+        <outputEntry id="rule_small_no_inspection_out_inspectionPriority"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_small_no_inspection_out_inspectionNotesEn"><text>"No inspection required for small vessels under 12m"</text></outputEntry>
+        <outputEntry id="rule_small_no_inspection_out_inspectionNotesAr"><text>"لا تتطلب معاينة للوحدات الصغيرة أقل من 12 متر"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 11: Default - No Inspection Required
+           القاعدة الافتراضية - لا تتطلب معاينة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_no_inspection">
+        <description>Default - no inspection required if no other rules apply</description>
+        <inputEntry id="rule_default_no_inspection_in_isUnderConstruction"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_inspection_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_inspection_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_inspection_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_inspection_in_classificationExpired"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_no_inspection_in_hasPassengers"><text>-</text></inputEntry>
+        <outputEntry id="rule_default_no_inspection_out_inspectionRequired"><text>false</text></outputEntry>
+        <outputEntry id="rule_default_no_inspection_out_inspectionType"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_default_no_inspection_out_inspectionTypeAr"><text>"لا تتطلب معاينة"</text></outputEntry>
+        <outputEntry id="rule_default_no_inspection_out_inspectionPriority"><text>"NONE"</text></outputEntry>
+        <outputEntry id="rule_default_no_inspection_out_inspectionNotesEn"><text>"No inspection required based on current criteria"</text></outputEntry>
+        <outputEntry id="rule_default_no_inspection_out_inspectionNotesAr"><text>"لا تتطلب معاينة بناءً على المعايير الحالية"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

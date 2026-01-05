@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-documents-required-definitions"
+             name="REG-001 Documents Required"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: Required Documents Decision Table
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - المستندات المطلوبة
+       
+       Purpose: Determine required documents based on vessel category, acquisition type, and activity
+       Reference: MTCIT-REG-001, Section 5.1.4 المستندات المطلوبة
+       
+       Inputs:
+         - vesselCategory: string (CARGO, TANKER, CONTAINER, BULK_CARRIER, PASSENGER, FISHING, 
+                                   NAVAL, RESEARCH, TUGBOAT, OFFSHORE, YACHT, FERRY, BOAT, OTHER)
+         - acquisitionType: string (NEW_BUILD, PURCHASE, FLAG_CHANGE)
+         - activityType: string (COMMERCIAL, FISHING, TOURISM, SERVICE, PRIVATE, OTHER)
+         - vesselLength: number (meters)
+       
+       Outputs:
+         - requiredDocuments: collection of document codes
+         - mandatoryCount: number of mandatory documents
+         - documentNotes: additional notes for the applicant
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-documents-required" name="Required Documents for Temporary Registration">
+    <decisionTable id="documentsDecisionTable" hitPolicy="COLLECT">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_vesselCategory" label="Vessel Category">
+        <inputExpression id="vesselCategoryExpr" typeRef="string">
+          <text>vesselCategory</text>
+        </inputExpression>
+        <inputValues>
+          <text>"CARGO","TANKER","CONTAINER","BULK_CARRIER","PASSENGER","FISHING","NAVAL","RESEARCH","TUGBOAT","OFFSHORE","YACHT","FERRY","BOAT","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_acquisitionType" label="Acquisition Type">
+        <inputExpression id="acquisitionTypeExpr" typeRef="string">
+          <text>acquisitionType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"NEW_BUILD","PURCHASE","FLAG_CHANGE"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_activityType" label="Activity Type">
+        <inputExpression id="activityTypeExpr" typeRef="string">
+          <text>activityType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"COMMERCIAL","FISHING","TOURISM","SERVICE","PRIVATE","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_vesselLength" label="Vessel Length (m)">
+        <inputExpression id="vesselLengthExpr" typeRef="number">
+          <text>vesselLength</text>
+        </inputExpression>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_documentCode" name="documentCode" label="Document Code" typeRef="string"/>
+      <output id="output_documentNameAr" name="documentNameAr" label="Document Name (Arabic)" typeRef="string"/>
+      <output id="output_documentNameEn" name="documentNameEn" label="Document Name (English)" typeRef="string"/>
+      <output id="output_mandatory" name="mandatory" label="Mandatory" typeRef="boolean"/>
+      <output id="output_notes" name="notes" label="Notes" typeRef="string"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: Builder's Certificate (New Build) - Always Required
+           شهادة بناء السفينة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_builders_cert">
+        <inputEntry id="rule_builders_cert_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_builders_cert_in_acquisitionType"><text>"NEW_BUILD"</text></inputEntry>
+        <inputEntry id="rule_builders_cert_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_builders_cert_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_builders_cert_out_documentCode"><text>"DOC_BUILDERS_CERT"</text></outputEntry>
+        <outputEntry id="rule_builders_cert_out_documentNameAr"><text>"شهادة بناء السفينة"</text></outputEntry>
+        <outputEntry id="rule_builders_cert_out_documentNameEn"><text>"Builder's Certificate"</text></outputEntry>
+        <outputEntry id="rule_builders_cert_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_builders_cert_out_notes"><text>"Required for newly built vessels - مطلوبة للسفن المبنية حديثاً"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 2: Bill of Sale (Purchase) - Always Required
+           عقد بيع السفينة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_bill_of_sale">
+        <inputEntry id="rule_bill_of_sale_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_bill_of_sale_in_acquisitionType"><text>"PURCHASE"</text></inputEntry>
+        <inputEntry id="rule_bill_of_sale_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_bill_of_sale_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_bill_of_sale_out_documentCode"><text>"DOC_BILL_OF_SALE"</text></outputEntry>
+        <outputEntry id="rule_bill_of_sale_out_documentNameAr"><text>"عقد بيع السفينة"</text></outputEntry>
+        <outputEntry id="rule_bill_of_sale_out_documentNameEn"><text>"Bill of Sale"</text></outputEntry>
+        <outputEntry id="rule_bill_of_sale_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_bill_of_sale_out_notes"><text>"Required for purchased vessels - مطلوب للسفن المشتراة"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3: Deletion Certificate (Flag Change) - Always Required
+           شهادة شطب من السجل السابق
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_deletion_cert">
+        <inputEntry id="rule_deletion_cert_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_deletion_cert_in_acquisitionType"><text>"FLAG_CHANGE"</text></inputEntry>
+        <inputEntry id="rule_deletion_cert_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_deletion_cert_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_deletion_cert_out_documentCode"><text>"DOC_DELETION_CERT"</text></outputEntry>
+        <outputEntry id="rule_deletion_cert_out_documentNameAr"><text>"شهادة شطب من السجل السابق"</text></outputEntry>
+        <outputEntry id="rule_deletion_cert_out_documentNameEn"><text>"Deletion Certificate from Previous Registry"</text></outputEntry>
+        <outputEntry id="rule_deletion_cert_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_deletion_cert_out_notes"><text>"Required for flag change - مطلوبة لتغيير العلم"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 4: Previous Registration Certificate (Flag Change)
+           شهادة التسجيل السابقة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_prev_reg_cert">
+        <inputEntry id="rule_prev_reg_cert_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_prev_reg_cert_in_acquisitionType"><text>"FLAG_CHANGE"</text></inputEntry>
+        <inputEntry id="rule_prev_reg_cert_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_prev_reg_cert_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_prev_reg_cert_out_documentCode"><text>"DOC_PREV_REG_CERT"</text></outputEntry>
+        <outputEntry id="rule_prev_reg_cert_out_documentNameAr"><text>"شهادة التسجيل السابقة"</text></outputEntry>
+        <outputEntry id="rule_prev_reg_cert_out_documentNameEn"><text>"Previous Registration Certificate"</text></outputEntry>
+        <outputEntry id="rule_prev_reg_cert_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_prev_reg_cert_out_notes"><text>"Copy of current/previous registration - نسخة من التسجيل الحالي/السابق"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5: Fishing Vessel License (Fishing Activity)
+           ترخيص الصيد من وزارة الثروة الزراعية
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fishing_license">
+        <inputEntry id="rule_fishing_license_in_vesselCategory"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_fishing_license_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_license_in_activityType"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_fishing_license_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_fishing_license_out_documentCode"><text>"DOC_MAFWR_LICENSE"</text></outputEntry>
+        <outputEntry id="rule_fishing_license_out_documentNameAr"><text>"موافقة وزارة الثروة الزراعية والسمكية"</text></outputEntry>
+        <outputEntry id="rule_fishing_license_out_documentNameEn"><text>"MAFWR Fishing Approval"</text></outputEntry>
+        <outputEntry id="rule_fishing_license_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_fishing_license_out_notes"><text>"Obtained via integration - يتم الحصول عليها عبر التكامل"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 6: Commercial Registration (Commercial/Service Activity)
+           السجل التجاري
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_commercial_reg">
+        <inputEntry id="rule_commercial_reg_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_commercial_reg_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_commercial_reg_in_activityType"><text>"COMMERCIAL","SERVICE"</text></inputEntry>
+        <inputEntry id="rule_commercial_reg_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_commercial_reg_out_documentCode"><text>"DOC_COMMERCIAL_REG"</text></outputEntry>
+        <outputEntry id="rule_commercial_reg_out_documentNameAr"><text>"السجل التجاري"</text></outputEntry>
+        <outputEntry id="rule_commercial_reg_out_documentNameEn"><text>"Commercial Registration"</text></outputEntry>
+        <outputEntry id="rule_commercial_reg_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_commercial_reg_out_notes"><text>"Verified via Invest Easy - يتم التحقق عبر منصة عمان للأعمال"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7: Classification Certificate (Large Vessels >= 24m)
+           شهادة التصنيف
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_class_cert_large">
+        <inputEntry id="rule_class_cert_large_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_class_cert_large_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_class_cert_large_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_class_cert_large_in_vesselLength"><text>&gt;= 24</text></inputEntry>
+        <outputEntry id="rule_class_cert_large_out_documentCode"><text>"DOC_CLASS_CERT"</text></outputEntry>
+        <outputEntry id="rule_class_cert_large_out_documentNameAr"><text>"شهادة التصنيف"</text></outputEntry>
+        <outputEntry id="rule_class_cert_large_out_documentNameEn"><text>"Classification Certificate"</text></outputEntry>
+        <outputEntry id="rule_class_cert_large_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_class_cert_large_out_notes"><text>"Required for vessels >= 24m - مطلوبة للسفن 24 متر فأكثر"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 8: Safety Certificates (Large Vessels >= 24m)
+           شهادات السلامة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_safety_cert">
+        <inputEntry id="rule_safety_cert_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_safety_cert_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_safety_cert_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_safety_cert_in_vesselLength"><text>&gt;= 24</text></inputEntry>
+        <outputEntry id="rule_safety_cert_out_documentCode"><text>"DOC_SAFETY_CERT"</text></outputEntry>
+        <outputEntry id="rule_safety_cert_out_documentNameAr"><text>"شهادات السلامة البحرية"</text></outputEntry>
+        <outputEntry id="rule_safety_cert_out_documentNameEn"><text>"Maritime Safety Certificates"</text></outputEntry>
+        <outputEntry id="rule_safety_cert_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_safety_cert_out_notes"><text>"SOLAS compliance certificates - شهادات الامتثال لاتفاقية سولاس"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9: Tonnage Certificate (Commercial Vessels)
+           شهادة الحمولة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tonnage_cert">
+        <inputEntry id="rule_tonnage_cert_in_vesselCategory"><text>"CARGO","TANKER","CONTAINER","BULK_CARRIER"</text></inputEntry>
+        <inputEntry id="rule_tonnage_cert_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_tonnage_cert_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_tonnage_cert_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_tonnage_cert_out_documentCode"><text>"DOC_TONNAGE_CERT"</text></outputEntry>
+        <outputEntry id="rule_tonnage_cert_out_documentNameAr"><text>"شهادة الحمولة الدولية"</text></outputEntry>
+        <outputEntry id="rule_tonnage_cert_out_documentNameEn"><text>"International Tonnage Certificate"</text></outputEntry>
+        <outputEntry id="rule_tonnage_cert_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_tonnage_cert_out_notes"><text>"Per 1969 Tonnage Convention - وفق اتفاقية الحمولة 1969"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 10: Passenger Ship Safety Certificate
+           شهادة سلامة سفن الركاب
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_passenger_safety">
+        <inputEntry id="rule_passenger_safety_in_vesselCategory"><text>"PASSENGER","FERRY"</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_safety_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_passenger_safety_out_documentCode"><text>"DOC_PASSENGER_SAFETY"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_documentNameAr"><text>"شهادة سلامة سفن الركاب"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_documentNameEn"><text>"Passenger Ship Safety Certificate"</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_passenger_safety_out_notes"><text>"SOLAS Chapter I Regulation 12 - سولاس الفصل الأول"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 11: Tugboat Specific Documents
+           مستندات خاصة بزوارق السحب
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tugboat_docs">
+        <inputEntry id="rule_tugboat_docs_in_vesselCategory"><text>"TUGBOAT"</text></inputEntry>
+        <inputEntry id="rule_tugboat_docs_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_docs_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_docs_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_tugboat_docs_out_documentCode"><text>"DOC_BOLLARD_PULL"</text></outputEntry>
+        <outputEntry id="rule_tugboat_docs_out_documentNameAr"><text>"شهادة قوة السحب"</text></outputEntry>
+        <outputEntry id="rule_tugboat_docs_out_documentNameEn"><text>"Bollard Pull Certificate"</text></outputEntry>
+        <outputEntry id="rule_tugboat_docs_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_tugboat_docs_out_notes"><text>"Required for all tugboats - مطلوبة لجميع زوارق السحب"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 12: Yacht Registration Documents
+           مستندات تسجيل اليخوت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_yacht_docs">
+        <inputEntry id="rule_yacht_docs_in_vesselCategory"><text>"YACHT"</text></inputEntry>
+        <inputEntry id="rule_yacht_docs_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_yacht_docs_in_activityType"><text>"PRIVATE","TOURISM"</text></inputEntry>
+        <inputEntry id="rule_yacht_docs_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_yacht_docs_out_documentCode"><text>"DOC_YACHT_SURVEY"</text></outputEntry>
+        <outputEntry id="rule_yacht_docs_out_documentNameAr"><text>"تقرير معاينة اليخت"</text></outputEntry>
+        <outputEntry id="rule_yacht_docs_out_documentNameEn"><text>"Yacht Survey Report"</text></outputEntry>
+        <outputEntry id="rule_yacht_docs_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_yacht_docs_out_notes"><text>"From approved surveyor - من مساح معتمد"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 13: Owner Identity Documents (All)
+           مستندات هوية المالك
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_owner_id">
+        <inputEntry id="rule_owner_id_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_owner_id_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_owner_id_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_owner_id_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_owner_id_out_documentCode"><text>"DOC_OWNER_ID"</text></outputEntry>
+        <outputEntry id="rule_owner_id_out_documentNameAr"><text>"مستندات هوية المالك"</text></outputEntry>
+        <outputEntry id="rule_owner_id_out_documentNameEn"><text>"Owner Identity Documents"</text></outputEntry>
+        <outputEntry id="rule_owner_id_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_owner_id_out_notes"><text>"Civil ID or Passport - البطاقة المدنية أو جواز السفر"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 14: Power of Attorney (If Representative)
+           وكالة قانونية
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_power_of_attorney">
+        <inputEntry id="rule_power_of_attorney_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_power_of_attorney_in_acquisitionType"><text>-</text></inputEntry>
+        <inputEntry id="rule_power_of_attorney_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_power_of_attorney_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_power_of_attorney_out_documentCode"><text>"DOC_POWER_OF_ATTORNEY"</text></outputEntry>
+        <outputEntry id="rule_power_of_attorney_out_documentNameAr"><text>"وكالة قانونية (إن وجد وكيل)"</text></outputEntry>
+        <outputEntry id="rule_power_of_attorney_out_documentNameEn"><text>"Power of Attorney (if representative)"</text></outputEntry>
+        <outputEntry id="rule_power_of_attorney_out_mandatory"><text>false</text></outputEntry>
+        <outputEntry id="rule_power_of_attorney_out_notes"><text>"Required if submitting on behalf of owner - مطلوبة إذا كان التقديم نيابة عن المالك"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 15: Customs Import Declaration (Imported Vessels)
+           بيان الاستيراد الجمركي
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_customs_declaration">
+        <inputEntry id="rule_customs_declaration_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_customs_declaration_in_acquisitionType"><text>"PURCHASE","FLAG_CHANGE"</text></inputEntry>
+        <inputEntry id="rule_customs_declaration_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_customs_declaration_in_vesselLength"><text>-</text></inputEntry>
+        <outputEntry id="rule_customs_declaration_out_documentCode"><text>"DOC_CUSTOMS_DECLARATION"</text></outputEntry>
+        <outputEntry id="rule_customs_declaration_out_documentNameAr"><text>"بيان الاستيراد الجمركي"</text></outputEntry>
+        <outputEntry id="rule_customs_declaration_out_documentNameEn"><text>"Customs Import Declaration"</text></outputEntry>
+        <outputEntry id="rule_customs_declaration_out_mandatory"><text>true</text></outputEntry>
+        <outputEntry id="rule_customs_declaration_out_notes"><text>"From Bayan system - من نظام بيان"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

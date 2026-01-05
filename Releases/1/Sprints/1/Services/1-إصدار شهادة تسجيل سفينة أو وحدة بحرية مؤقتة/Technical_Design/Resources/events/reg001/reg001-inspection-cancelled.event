@@ -1,0 +1,68 @@
+{
+  "key": "reg001-inspection-cancelled",
+  "category": "event",
+  "name": "Vessel Inspection Cancelled",
+  "description": "Vessel inspection request has been cancelled. إلغاء طلب المعاينة",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "inspectionId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "inspectionId",
+      "type": "string"
+    },
+    {
+      "name": "vesselImoNumber",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonCode",
+      "type": "string",
+      "description": "USER_CANCELLED, INSPECTOR_UNAVAILABLE, VESSEL_UNAVAILABLE, WEATHER_CONDITIONS, SCHEDULING_CONFLICT"
+    },
+    {
+      "name": "cancellationReasonArabic",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "cancelledBy",
+      "type": "string"
+    },
+    {
+      "name": "cancellationTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "scheduledInspectionDate",
+      "type": "string"
+    },
+    {
+      "name": "canReschedule",
+      "type": "boolean"
+    },
+    {
+      "name": "rescheduleDeadline",
+      "type": "string"
+    }
+  ]
+}

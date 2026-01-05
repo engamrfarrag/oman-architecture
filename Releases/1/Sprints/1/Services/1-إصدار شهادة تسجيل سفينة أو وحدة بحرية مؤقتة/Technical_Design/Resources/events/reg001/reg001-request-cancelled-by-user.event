@@ -1,0 +1,65 @@
+{
+  "key": "reg001-request-cancelled-by-user",
+  "category": "event",
+  "name": "Registration Request Cancelled by User",
+  "description": "User/applicant has cancelled the registration request. إلغاء الطلب من قبل المستفيد",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "civilId",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "cancellationReasonCode",
+      "type": "string",
+      "description": "CHANGED_MIND, DUPLICATE_REQUEST, INCORRECT_INFORMATION, VESSEL_SOLD, OTHER"
+    },
+    {
+      "name": "cancellationReasonArabic",
+      "type": "string",
+      "description": "سبب الإلغاء"
+    },
+    {
+      "name": "cancellationReasonEnglish",
+      "type": "string"
+    },
+    {
+      "name": "cancelledBy",
+      "type": "string"
+    },
+    {
+      "name": "cancellationTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "requestStatusAtCancellation",
+      "type": "string"
+    },
+    {
+      "name": "refundEligible",
+      "type": "boolean"
+    },
+    {
+      "name": "refundAmount",
+      "type": "double"
+    }
+  ]
+}

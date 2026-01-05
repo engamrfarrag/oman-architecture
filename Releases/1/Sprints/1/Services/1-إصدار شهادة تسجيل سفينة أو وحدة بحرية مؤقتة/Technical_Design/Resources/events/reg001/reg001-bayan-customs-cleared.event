@@ -1,0 +1,65 @@
+{
+  "key": "reg001-bayan-customs-cleared",
+  "category": "event",
+  "name": "Bayan Customs Cleared",
+  "description": "Customs clearance successful from نظام بيان. الإفراج الجمركي تم",
+  "inboundChannelKeys": ["reg001-inbound-channel"],
+  "correlationParameters": [
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "importDeclarationNumber",
+      "type": "string"
+    }
+  ],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselRegistrationNumber",
+      "type": "string"
+    },
+    {
+      "name": "importDeclarationNumber",
+      "type": "string",
+      "description": "وثيقة بيان الاستيراد"
+    },
+    {
+      "name": "clearanceReferenceNumber",
+      "type": "string",
+      "description": "الإفراج الجمركي النهائي"
+    },
+    {
+      "name": "clearanceDate",
+      "type": "string"
+    },
+    {
+      "name": "portOfEntry",
+      "type": "string"
+    },
+    {
+      "name": "importDeclarationDocumentUrl",
+      "type": "string"
+    },
+    {
+      "name": "clearanceDocumentUrl",
+      "type": "string"
+    },
+    {
+      "name": "customsDutyPaid",
+      "type": "double"
+    },
+    {
+      "name": "vesselValue",
+      "type": "double"
+    }
+  ]
+}

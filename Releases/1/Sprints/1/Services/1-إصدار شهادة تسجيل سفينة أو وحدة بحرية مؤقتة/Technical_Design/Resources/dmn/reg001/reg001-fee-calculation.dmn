@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-fee-calculation-definitions"
+             name="REG-001 Fee Calculation"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: Service Fee Calculation Decision Table
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - حساب رسوم الخدمة
+       
+       Purpose: Calculate registration fees based on vessel type, tonnage, length, and activity
+       Reference: MTCIT-REG-001, Section 5.1.5 إعدادات الدورة (REG-001-SET-06)
+       
+       Fee Structure (Example - to be configured):
+         - Base registration fee
+         - Tonnage-based fee component
+         - Length-based fee component
+         - Activity-specific surcharges
+         - Name reservation fee
+       
+       Inputs:
+         - vesselCategory: string (vessel type)
+         - grossTonnage: number (GT)
+         - vesselLength: number (meters)
+         - activityType: string (activity classification)
+         - registrationType: string (TEMPORARY, PERMANENT, BAREBOAT)
+       
+       Outputs:
+         - baseFee: number (base registration fee in OMR)
+         - tonnageFee: number (tonnage-based fee in OMR)
+         - lengthFee: number (length-based fee in OMR)
+         - activityFee: number (activity surcharge in OMR)
+         - nameReservationFee: number (name reservation fee in OMR)
+         - totalFee: number (total fee in OMR)
+         - feeDescription: string (fee breakdown description)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-fee-calculation" name="Registration Fee Calculation">
+    <decisionTable id="feeCalculationDecisionTable" hitPolicy="FIRST">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_vesselCategory" label="Vessel Category">
+        <inputExpression id="vesselCategoryExpr" typeRef="string">
+          <text>vesselCategory</text>
+        </inputExpression>
+        <inputValues>
+          <text>"CARGO","TANKER","CONTAINER","BULK_CARRIER","PASSENGER","FISHING","NAVAL","RESEARCH","TUGBOAT","OFFSHORE","YACHT","FERRY","BOAT","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_grossTonnage" label="Gross Tonnage (GT)">
+        <inputExpression id="grossTonnageExpr" typeRef="number">
+          <text>grossTonnage</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_vesselLength" label="Vessel Length (m)">
+        <inputExpression id="vesselLengthExpr" typeRef="number">
+          <text>vesselLength</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_activityType" label="Activity Type">
+        <inputExpression id="activityTypeExpr" typeRef="string">
+          <text>activityType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"COMMERCIAL","FISHING","TOURISM","SERVICE","PRIVATE","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_registrationType" label="Registration Type">
+        <inputExpression id="registrationTypeExpr" typeRef="string">
+          <text>registrationType</text>
+        </inputExpression>
+        <inputValues>
+          <text>"TEMPORARY","PERMANENT","BAREBOAT"</text>
+        </inputValues>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_baseFee" name="baseFee" label="Base Fee (OMR)" typeRef="number"/>
+      <output id="output_tonnageFee" name="tonnageFee" label="Tonnage Fee (OMR)" typeRef="number"/>
+      <output id="output_lengthFee" name="lengthFee" label="Length Fee (OMR)" typeRef="number"/>
+      <output id="output_activityFee" name="activityFee" label="Activity Fee (OMR)" typeRef="number"/>
+      <output id="output_nameReservationFee" name="nameReservationFee" label="Name Reservation Fee (OMR)" typeRef="number"/>
+      <output id="output_feeDescriptionAr" name="feeDescriptionAr" label="Fee Description (Arabic)" typeRef="string"/>
+      <output id="output_feeDescriptionEn" name="feeDescriptionEn" label="Fee Description (English)" typeRef="string"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: Large Cargo/Container Vessels (>= 500 GT) - Temporary Registration
+           سفن الشحن/الحاويات الكبيرة (500 طن فأكثر) - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_large_cargo_temp">
+        <description>Large cargo vessels >= 500 GT - Temporary registration</description>
+        <inputEntry id="rule_large_cargo_temp_in_vesselCategory"><text>"CARGO","CONTAINER","BULK_CARRIER"</text></inputEntry>
+        <inputEntry id="rule_large_cargo_temp_in_grossTonnage"><text>&gt;= 500</text></inputEntry>
+        <inputEntry id="rule_large_cargo_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_large_cargo_temp_in_activityType"><text>"COMMERCIAL"</text></inputEntry>
+        <inputEntry id="rule_large_cargo_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_baseFee"><text>100</text></outputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_tonnageFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_lengthFee"><text>25</text></outputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_activityFee"><text>75</text></outputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الشحن الكبيرة - الإجمالي: 260 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_large_cargo_temp_out_feeDescriptionEn"><text>"Temporary registration fee for large cargo vessels - Total: 260 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 2: Medium Cargo Vessels (100-499 GT) - Temporary Registration
+           سفن الشحن المتوسطة (100-499 طن) - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_medium_cargo_temp">
+        <description>Medium cargo vessels 100-499 GT</description>
+        <inputEntry id="rule_medium_cargo_temp_in_vesselCategory"><text>"CARGO","CONTAINER","BULK_CARRIER"</text></inputEntry>
+        <inputEntry id="rule_medium_cargo_temp_in_grossTonnage"><text>[100..500)</text></inputEntry>
+        <inputEntry id="rule_medium_cargo_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_medium_cargo_temp_in_activityType"><text>"COMMERCIAL"</text></inputEntry>
+        <inputEntry id="rule_medium_cargo_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_baseFee"><text>75</text></outputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_tonnageFee"><text>30</text></outputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_lengthFee"><text>15</text></outputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_activityFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الشحن المتوسطة - الإجمالي: 180 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_medium_cargo_temp_out_feeDescriptionEn"><text>"Temporary registration fee for medium cargo vessels - Total: 180 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3: Small Cargo Vessels (< 100 GT) - Temporary Registration
+           سفن الشحن الصغيرة (أقل من 100 طن) - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_small_cargo_temp">
+        <description>Small cargo vessels under 100 GT</description>
+        <inputEntry id="rule_small_cargo_temp_in_vesselCategory"><text>"CARGO","CONTAINER","BULK_CARRIER"</text></inputEntry>
+        <inputEntry id="rule_small_cargo_temp_in_grossTonnage"><text>&lt; 100</text></inputEntry>
+        <inputEntry id="rule_small_cargo_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_small_cargo_temp_in_activityType"><text>"COMMERCIAL"</text></inputEntry>
+        <inputEntry id="rule_small_cargo_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_baseFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_tonnageFee"><text>15</text></outputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_lengthFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_activityFee"><text>25</text></outputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الشحن الصغيرة - الإجمالي: 110 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_small_cargo_temp_out_feeDescriptionEn"><text>"Temporary registration fee for small cargo vessels - Total: 110 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 4: Tanker Vessels - Temporary Registration
+           ناقلات النفط والكيماويات - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tanker_temp">
+        <description>Tanker vessels - higher fees due to hazmat</description>
+        <inputEntry id="rule_tanker_temp_in_vesselCategory"><text>"TANKER"</text></inputEntry>
+        <inputEntry id="rule_tanker_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_tanker_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_tanker_temp_in_activityType"><text>"COMMERCIAL"</text></inputEntry>
+        <inputEntry id="rule_tanker_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_tanker_temp_out_baseFee"><text>150</text></outputEntry>
+        <outputEntry id="rule_tanker_temp_out_tonnageFee"><text>75</text></outputEntry>
+        <outputEntry id="rule_tanker_temp_out_lengthFee"><text>35</text></outputEntry>
+        <outputEntry id="rule_tanker_temp_out_activityFee"><text>100</text></outputEntry>
+        <outputEntry id="rule_tanker_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_tanker_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت للناقلات - الإجمالي: 370 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_tanker_temp_out_feeDescriptionEn"><text>"Temporary registration fee for tankers - Total: 370 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5: Fishing Vessels - Temporary Registration
+           سفن الصيد - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fishing_temp">
+        <description>Fishing vessels - reduced fees</description>
+        <inputEntry id="rule_fishing_temp_in_vesselCategory"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_fishing_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_fishing_temp_in_activityType"><text>"FISHING"</text></inputEntry>
+        <inputEntry id="rule_fishing_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_fishing_temp_out_baseFee"><text>30</text></outputEntry>
+        <outputEntry id="rule_fishing_temp_out_tonnageFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_fishing_temp_out_lengthFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_fishing_temp_out_activityFee"><text>15</text></outputEntry>
+        <outputEntry id="rule_fishing_temp_out_nameReservationFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_fishing_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الصيد - الإجمالي: 65 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_fishing_temp_out_feeDescriptionEn"><text>"Temporary registration fee for fishing vessels - Total: 65 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 6: Passenger/Ferry Vessels - Temporary Registration
+           سفن الركاب والعبارات - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_passenger_temp">
+        <description>Passenger vessels - standard commercial fees</description>
+        <inputEntry id="rule_passenger_temp_in_vesselCategory"><text>"PASSENGER","FERRY"</text></inputEntry>
+        <inputEntry id="rule_passenger_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_temp_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_passenger_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_passenger_temp_out_baseFee"><text>120</text></outputEntry>
+        <outputEntry id="rule_passenger_temp_out_tonnageFee"><text>60</text></outputEntry>
+        <outputEntry id="rule_passenger_temp_out_lengthFee"><text>30</text></outputEntry>
+        <outputEntry id="rule_passenger_temp_out_activityFee"><text>80</text></outputEntry>
+        <outputEntry id="rule_passenger_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_passenger_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الركاب - الإجمالي: 300 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_passenger_temp_out_feeDescriptionEn"><text>"Temporary registration fee for passenger vessels - Total: 300 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7: Tugboat Vessels - Temporary Registration
+           زوارق السحب - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_tugboat_temp">
+        <description>Tugboat vessels</description>
+        <inputEntry id="rule_tugboat_temp_in_vesselCategory"><text>"TUGBOAT"</text></inputEntry>
+        <inputEntry id="rule_tugboat_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_tugboat_temp_in_activityType"><text>"SERVICE"</text></inputEntry>
+        <inputEntry id="rule_tugboat_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_tugboat_temp_out_baseFee"><text>80</text></outputEntry>
+        <outputEntry id="rule_tugboat_temp_out_tonnageFee"><text>40</text></outputEntry>
+        <outputEntry id="rule_tugboat_temp_out_lengthFee"><text>20</text></outputEntry>
+        <outputEntry id="rule_tugboat_temp_out_activityFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_tugboat_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_tugboat_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لزوارق السحب - الإجمالي: 200 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_tugboat_temp_out_feeDescriptionEn"><text>"Temporary registration fee for tugboats - Total: 200 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 8: Yacht - Private Use - Temporary Registration
+           اليخوت - الاستخدام الشخصي - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_yacht_private_temp">
+        <description>Private yacht registration</description>
+        <inputEntry id="rule_yacht_private_temp_in_vesselCategory"><text>"YACHT"</text></inputEntry>
+        <inputEntry id="rule_yacht_private_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_yacht_private_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_yacht_private_temp_in_activityType"><text>"PRIVATE"</text></inputEntry>
+        <inputEntry id="rule_yacht_private_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_baseFee"><text>60</text></outputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_tonnageFee"><text>20</text></outputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_lengthFee"><text>15</text></outputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_activityFee"><text>0</text></outputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لليخوت الخاصة - الإجمالي: 105 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_yacht_private_temp_out_feeDescriptionEn"><text>"Temporary registration fee for private yachts - Total: 105 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9: Yacht - Tourism/Commercial - Temporary Registration
+           اليخوت - السياحة/التجارية - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_yacht_commercial_temp">
+        <description>Commercial/Tourism yacht registration</description>
+        <inputEntry id="rule_yacht_commercial_temp_in_vesselCategory"><text>"YACHT"</text></inputEntry>
+        <inputEntry id="rule_yacht_commercial_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_yacht_commercial_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_yacht_commercial_temp_in_activityType"><text>"TOURISM","COMMERCIAL"</text></inputEntry>
+        <inputEntry id="rule_yacht_commercial_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_baseFee"><text>90</text></outputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_tonnageFee"><text>35</text></outputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_lengthFee"><text>20</text></outputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_activityFee"><text>55</text></outputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لليخوت السياحية - الإجمالي: 210 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_yacht_commercial_temp_out_feeDescriptionEn"><text>"Temporary registration fee for tourism yachts - Total: 210 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 10: Small Boat (< 12m) - Temporary Registration
+           القوارب الصغيرة (أقل من 12 متر) - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_small_boat_temp">
+        <description>Small boats under 12m</description>
+        <inputEntry id="rule_small_boat_temp_in_vesselCategory"><text>"BOAT"</text></inputEntry>
+        <inputEntry id="rule_small_boat_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_small_boat_temp_in_vesselLength"><text>&lt; 12</text></inputEntry>
+        <inputEntry id="rule_small_boat_temp_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_small_boat_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_small_boat_temp_out_baseFee"><text>20</text></outputEntry>
+        <outputEntry id="rule_small_boat_temp_out_tonnageFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_small_boat_temp_out_lengthFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_small_boat_temp_out_activityFee"><text>0</text></outputEntry>
+        <outputEntry id="rule_small_boat_temp_out_nameReservationFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_small_boat_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت للقوارب الصغيرة - الإجمالي: 35 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_small_boat_temp_out_feeDescriptionEn"><text>"Temporary registration fee for small boats - Total: 35 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 11: Medium Boat (12-24m) - Temporary Registration
+           القوارب المتوسطة (12-24 متر) - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_medium_boat_temp">
+        <description>Medium boats 12-24m</description>
+        <inputEntry id="rule_medium_boat_temp_in_vesselCategory"><text>"BOAT"</text></inputEntry>
+        <inputEntry id="rule_medium_boat_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_medium_boat_temp_in_vesselLength"><text>[12..24]</text></inputEntry>
+        <inputEntry id="rule_medium_boat_temp_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_medium_boat_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_baseFee"><text>35</text></outputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_tonnageFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_lengthFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_activityFee"><text>0</text></outputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_nameReservationFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت للقوارب المتوسطة - الإجمالي: 60 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_medium_boat_temp_out_feeDescriptionEn"><text>"Temporary registration fee for medium boats - Total: 60 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 12: Offshore Supply Vessels - Temporary Registration
+           سفن الإمداد البحرية - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_offshore_temp">
+        <description>Offshore supply vessels</description>
+        <inputEntry id="rule_offshore_temp_in_vesselCategory"><text>"OFFSHORE"</text></inputEntry>
+        <inputEntry id="rule_offshore_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_offshore_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_offshore_temp_in_activityType"><text>"SERVICE"</text></inputEntry>
+        <inputEntry id="rule_offshore_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_offshore_temp_out_baseFee"><text>100</text></outputEntry>
+        <outputEntry id="rule_offshore_temp_out_tonnageFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_offshore_temp_out_lengthFee"><text>25</text></outputEntry>
+        <outputEntry id="rule_offshore_temp_out_activityFee"><text>75</text></outputEntry>
+        <outputEntry id="rule_offshore_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_offshore_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الإمداد البحرية - الإجمالي: 260 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_offshore_temp_out_feeDescriptionEn"><text>"Temporary registration fee for offshore vessels - Total: 260 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 13: Research Vessels - Temporary Registration
+           سفن الأبحاث - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_research_temp">
+        <description>Research vessels - reduced fees</description>
+        <inputEntry id="rule_research_temp_in_vesselCategory"><text>"RESEARCH"</text></inputEntry>
+        <inputEntry id="rule_research_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_research_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_research_temp_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_research_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_research_temp_out_baseFee"><text>40</text></outputEntry>
+        <outputEntry id="rule_research_temp_out_tonnageFee"><text>15</text></outputEntry>
+        <outputEntry id="rule_research_temp_out_lengthFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_research_temp_out_activityFee"><text>0</text></outputEntry>
+        <outputEntry id="rule_research_temp_out_nameReservationFee"><text>5</text></outputEntry>
+        <outputEntry id="rule_research_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت لسفن الأبحاث - الإجمالي: 70 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_research_temp_out_feeDescriptionEn"><text>"Temporary registration fee for research vessels - Total: 70 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 14: Default - Other Vessel Types - Temporary Registration
+           القاعدة الافتراضية - أنواع السفن الأخرى - التسجيل المؤقت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_temp">
+        <description>Default fees for other vessel types</description>
+        <inputEntry id="rule_default_temp_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_temp_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_temp_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_temp_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_temp_in_registrationType"><text>"TEMPORARY"</text></inputEntry>
+        <outputEntry id="rule_default_temp_out_baseFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_default_temp_out_tonnageFee"><text>20</text></outputEntry>
+        <outputEntry id="rule_default_temp_out_lengthFee"><text>15</text></outputEntry>
+        <outputEntry id="rule_default_temp_out_activityFee"><text>25</text></outputEntry>
+        <outputEntry id="rule_default_temp_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_default_temp_out_feeDescriptionAr"><text>"رسوم تسجيل مؤقت افتراضية - الإجمالي: 120 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_default_temp_out_feeDescriptionEn"><text>"Default temporary registration fee - Total: 120 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 15: Permanent Registration - Standard multiplier (2x)
+           التسجيل الدائم - معامل مضاعف (2 ضعف)
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_permanent">
+        <description>Permanent registration - double the temporary fees</description>
+        <inputEntry id="rule_default_permanent_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_permanent_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_permanent_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_permanent_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_permanent_in_registrationType"><text>"PERMANENT"</text></inputEntry>
+        <outputEntry id="rule_default_permanent_out_baseFee"><text>100</text></outputEntry>
+        <outputEntry id="rule_default_permanent_out_tonnageFee"><text>40</text></outputEntry>
+        <outputEntry id="rule_default_permanent_out_lengthFee"><text>30</text></outputEntry>
+        <outputEntry id="rule_default_permanent_out_activityFee"><text>50</text></outputEntry>
+        <outputEntry id="rule_default_permanent_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_default_permanent_out_feeDescriptionAr"><text>"رسوم تسجيل دائم - الإجمالي: 230 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_default_permanent_out_feeDescriptionEn"><text>"Permanent registration fee - Total: 230 OMR"</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 16: Bareboat Registration
+           تسجيل بيرفوت
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_bareboat">
+        <description>Bareboat registration fees</description>
+        <inputEntry id="rule_default_bareboat_in_vesselCategory"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_bareboat_in_grossTonnage"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_bareboat_in_vesselLength"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_bareboat_in_activityType"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_bareboat_in_registrationType"><text>"BAREBOAT"</text></inputEntry>
+        <outputEntry id="rule_default_bareboat_out_baseFee"><text>150</text></outputEntry>
+        <outputEntry id="rule_default_bareboat_out_tonnageFee"><text>60</text></outputEntry>
+        <outputEntry id="rule_default_bareboat_out_lengthFee"><text>35</text></outputEntry>
+        <outputEntry id="rule_default_bareboat_out_activityFee"><text>75</text></outputEntry>
+        <outputEntry id="rule_default_bareboat_out_nameReservationFee"><text>10</text></outputEntry>
+        <outputEntry id="rule_default_bareboat_out_feeDescriptionAr"><text>"رسوم تسجيل بيرفوت - الإجمالي: 330 ريال عماني"</text></outputEntry>
+        <outputEntry id="rule_default_bareboat_out_feeDescriptionEn"><text>"Bareboat registration fee - Total: 330 OMR"</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

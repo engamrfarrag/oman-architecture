@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             xmlns:flowable="http://flowable.org/dmn"
+             id="reg001-vessel-age-validation-definitions"
+             name="REG-001 Vessel Age Validation"
+             namespace="http://www.flowable.org/dmn">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════════════
+       REG-001: Vessel Age Validation Decision Table
+       إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة - التحقق من عمر السفينة
+       
+       Purpose: Validate vessel age against maximum allowed age (20 years default)
+                with exceptions based on build material
+       Reference: MTCIT-REG-001, Section 5.1.5 إعدادات الدورة (REG-001-CONF-04)
+                  MTCIT-REG-003, Section 5.2.5 استثناءات التسجيل الدائم من العمر
+       
+       Business Rules:
+         - Maximum age: 20 years (default)
+         - Steel vessels: 25 years allowed
+         - Aluminum vessels: 30 years allowed
+         - Fiberglass vessels: 35 years allowed
+         - Wooden vessels: 15 years maximum
+       
+       Inputs:
+         - buildYear: number (year of construction)
+         - currentYear: number (current year)
+         - buildMaterial: string (STEEL, ALUMINUM, FIBERGLASS, WOOD, COMPOSITE, OTHER)
+         - vesselCategory: string (vessel type category)
+       
+       Outputs:
+         - isValid: boolean (whether vessel age is acceptable)
+         - vesselAge: number (calculated age in years)
+         - maxAllowedAge: number (maximum allowed age for this material)
+         - validationMessage: string (validation result message)
+         - requiresException: boolean (whether special approval is needed)
+       ═══════════════════════════════════════════════════════════════════════════════════════════ -->
+
+  <decision id="reg001-vessel-age-validation" name="Vessel Age Validation for Registration">
+    <decisionTable id="ageValidationDecisionTable" hitPolicy="FIRST">
+      
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           INPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <input id="input_vesselAge" label="Vessel Age (Years)">
+        <inputExpression id="vesselAgeExpr" typeRef="number">
+          <text>currentYear - buildYear</text>
+        </inputExpression>
+      </input>
+      
+      <input id="input_buildMaterial" label="Build Material">
+        <inputExpression id="buildMaterialExpr" typeRef="string">
+          <text>buildMaterial</text>
+        </inputExpression>
+        <inputValues>
+          <text>"STEEL","ALUMINUM","FIBERGLASS","WOOD","COMPOSITE","OTHER"</text>
+        </inputValues>
+      </input>
+      
+      <input id="input_vesselCategory" label="Vessel Category">
+        <inputExpression id="vesselCategoryExpr" typeRef="string">
+          <text>vesselCategory</text>
+        </inputExpression>
+        <inputValues>
+          <text>"CARGO","TANKER","CONTAINER","BULK_CARRIER","PASSENGER","FISHING","NAVAL","RESEARCH","TUGBOAT","OFFSHORE","YACHT","FERRY","BOAT","OTHER"</text>
+        </inputValues>
+      </input>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           OUTPUT COLUMNS
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <output id="output_isValid" name="isValid" label="Is Valid" typeRef="boolean"/>
+      <output id="output_maxAllowedAge" name="maxAllowedAge" label="Max Allowed Age" typeRef="number"/>
+      <output id="output_validationMessage" name="validationMessage" label="Validation Message" typeRef="string"/>
+      <output id="output_validationMessageAr" name="validationMessageAr" label="Validation Message (Arabic)" typeRef="string"/>
+      <output id="output_requiresException" name="requiresException" label="Requires Exception" typeRef="boolean"/>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 1: Wooden Vessels - Maximum 15 years
+           السفن الخشبية - الحد الأقصى 15 سنة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_wood_valid">
+        <description>Wooden vessels within 15 year limit</description>
+        <inputEntry id="rule_wood_valid_in_vesselAge"><text>&lt;= 15</text></inputEntry>
+        <inputEntry id="rule_wood_valid_in_buildMaterial"><text>"WOOD"</text></inputEntry>
+        <inputEntry id="rule_wood_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_wood_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_wood_valid_out_maxAllowedAge"><text>15</text></outputEntry>
+        <outputEntry id="rule_wood_valid_out_validationMessage"><text>"Vessel age is within acceptable limit for wooden construction"</text></outputEntry>
+        <outputEntry id="rule_wood_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول للبناء الخشبي"</text></outputEntry>
+        <outputEntry id="rule_wood_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_wood_invalid">
+        <description>Wooden vessels exceeding 15 year limit</description>
+        <inputEntry id="rule_wood_invalid_in_vesselAge"><text>&gt; 15</text></inputEntry>
+        <inputEntry id="rule_wood_invalid_in_buildMaterial"><text>"WOOD"</text></inputEntry>
+        <inputEntry id="rule_wood_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_wood_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_wood_invalid_out_maxAllowedAge"><text>15</text></outputEntry>
+        <outputEntry id="rule_wood_invalid_out_validationMessage"><text>"Wooden vessels cannot exceed 15 years of age"</text></outputEntry>
+        <outputEntry id="rule_wood_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل السفن الخشبية التي يتجاوز عمرها 15 سنة"</text></outputEntry>
+        <outputEntry id="rule_wood_invalid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 3-4: Steel Vessels - Maximum 25 years
+           السفن الفولاذية - الحد الأقصى 25 سنة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_steel_valid">
+        <description>Steel vessels within 25 year limit</description>
+        <inputEntry id="rule_steel_valid_in_vesselAge"><text>&lt;= 25</text></inputEntry>
+        <inputEntry id="rule_steel_valid_in_buildMaterial"><text>"STEEL"</text></inputEntry>
+        <inputEntry id="rule_steel_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_steel_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_steel_valid_out_maxAllowedAge"><text>25</text></outputEntry>
+        <outputEntry id="rule_steel_valid_out_validationMessage"><text>"Vessel age is within acceptable limit for steel construction"</text></outputEntry>
+        <outputEntry id="rule_steel_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول للبناء الفولاذي"</text></outputEntry>
+        <outputEntry id="rule_steel_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_steel_invalid">
+        <description>Steel vessels exceeding 25 year limit</description>
+        <inputEntry id="rule_steel_invalid_in_vesselAge"><text>&gt; 25</text></inputEntry>
+        <inputEntry id="rule_steel_invalid_in_buildMaterial"><text>"STEEL"</text></inputEntry>
+        <inputEntry id="rule_steel_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_steel_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_steel_invalid_out_maxAllowedAge"><text>25</text></outputEntry>
+        <outputEntry id="rule_steel_invalid_out_validationMessage"><text>"Steel vessels cannot exceed 25 years of age"</text></outputEntry>
+        <outputEntry id="rule_steel_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل السفن الفولاذية التي يتجاوز عمرها 25 سنة"</text></outputEntry>
+        <outputEntry id="rule_steel_invalid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 5-6: Aluminum Vessels - Maximum 30 years
+           السفن الألومنيوم - الحد الأقصى 30 سنة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_aluminum_valid">
+        <description>Aluminum vessels within 30 year limit</description>
+        <inputEntry id="rule_aluminum_valid_in_vesselAge"><text>&lt;= 30</text></inputEntry>
+        <inputEntry id="rule_aluminum_valid_in_buildMaterial"><text>"ALUMINUM"</text></inputEntry>
+        <inputEntry id="rule_aluminum_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_aluminum_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_aluminum_valid_out_maxAllowedAge"><text>30</text></outputEntry>
+        <outputEntry id="rule_aluminum_valid_out_validationMessage"><text>"Vessel age is within acceptable limit for aluminum construction"</text></outputEntry>
+        <outputEntry id="rule_aluminum_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول للبناء الألومنيوم"</text></outputEntry>
+        <outputEntry id="rule_aluminum_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_aluminum_invalid">
+        <description>Aluminum vessels exceeding 30 year limit</description>
+        <inputEntry id="rule_aluminum_invalid_in_vesselAge"><text>&gt; 30</text></inputEntry>
+        <inputEntry id="rule_aluminum_invalid_in_buildMaterial"><text>"ALUMINUM"</text></inputEntry>
+        <inputEntry id="rule_aluminum_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_aluminum_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_aluminum_invalid_out_maxAllowedAge"><text>30</text></outputEntry>
+        <outputEntry id="rule_aluminum_invalid_out_validationMessage"><text>"Aluminum vessels cannot exceed 30 years of age"</text></outputEntry>
+        <outputEntry id="rule_aluminum_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل سفن الألومنيوم التي يتجاوز عمرها 30 سنة"</text></outputEntry>
+        <outputEntry id="rule_aluminum_invalid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 7-8: Fiberglass Vessels - Maximum 35 years
+           السفن الفايبرجلاس - الحد الأقصى 35 سنة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_fiberglass_valid">
+        <description>Fiberglass vessels within 35 year limit</description>
+        <inputEntry id="rule_fiberglass_valid_in_vesselAge"><text>&lt;= 35</text></inputEntry>
+        <inputEntry id="rule_fiberglass_valid_in_buildMaterial"><text>"FIBERGLASS"</text></inputEntry>
+        <inputEntry id="rule_fiberglass_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_fiberglass_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_fiberglass_valid_out_maxAllowedAge"><text>35</text></outputEntry>
+        <outputEntry id="rule_fiberglass_valid_out_validationMessage"><text>"Vessel age is within acceptable limit for fiberglass construction"</text></outputEntry>
+        <outputEntry id="rule_fiberglass_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول للبناء الفايبرجلاس"</text></outputEntry>
+        <outputEntry id="rule_fiberglass_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_fiberglass_invalid">
+        <description>Fiberglass vessels exceeding 35 year limit</description>
+        <inputEntry id="rule_fiberglass_invalid_in_vesselAge"><text>&gt; 35</text></inputEntry>
+        <inputEntry id="rule_fiberglass_invalid_in_buildMaterial"><text>"FIBERGLASS"</text></inputEntry>
+        <inputEntry id="rule_fiberglass_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_fiberglass_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_fiberglass_invalid_out_maxAllowedAge"><text>35</text></outputEntry>
+        <outputEntry id="rule_fiberglass_invalid_out_validationMessage"><text>"Fiberglass vessels cannot exceed 35 years of age"</text></outputEntry>
+        <outputEntry id="rule_fiberglass_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل سفن الفايبرجلاس التي يتجاوز عمرها 35 سنة"</text></outputEntry>
+        <outputEntry id="rule_fiberglass_invalid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 9-10: Composite Vessels - Maximum 25 years
+           السفن المركبة - الحد الأقصى 25 سنة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_composite_valid">
+        <description>Composite vessels within 25 year limit</description>
+        <inputEntry id="rule_composite_valid_in_vesselAge"><text>&lt;= 25</text></inputEntry>
+        <inputEntry id="rule_composite_valid_in_buildMaterial"><text>"COMPOSITE"</text></inputEntry>
+        <inputEntry id="rule_composite_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_composite_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_composite_valid_out_maxAllowedAge"><text>25</text></outputEntry>
+        <outputEntry id="rule_composite_valid_out_validationMessage"><text>"Vessel age is within acceptable limit for composite construction"</text></outputEntry>
+        <outputEntry id="rule_composite_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول للبناء المركب"</text></outputEntry>
+        <outputEntry id="rule_composite_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_composite_invalid">
+        <description>Composite vessels exceeding 25 year limit</description>
+        <inputEntry id="rule_composite_invalid_in_vesselAge"><text>&gt; 25</text></inputEntry>
+        <inputEntry id="rule_composite_invalid_in_buildMaterial"><text>"COMPOSITE"</text></inputEntry>
+        <inputEntry id="rule_composite_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_composite_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_composite_invalid_out_maxAllowedAge"><text>25</text></outputEntry>
+        <outputEntry id="rule_composite_invalid_out_validationMessage"><text>"Composite vessels cannot exceed 25 years of age"</text></outputEntry>
+        <outputEntry id="rule_composite_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل السفن المركبة التي يتجاوز عمرها 25 سنة"</text></outputEntry>
+        <outputEntry id="rule_composite_invalid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 11-12: Other/Default Materials - Maximum 20 years
+           مواد أخرى - الحد الأقصى الافتراضي 20 سنة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_other_valid">
+        <description>Other materials within 20 year default limit</description>
+        <inputEntry id="rule_other_valid_in_vesselAge"><text>&lt;= 20</text></inputEntry>
+        <inputEntry id="rule_other_valid_in_buildMaterial"><text>"OTHER"</text></inputEntry>
+        <inputEntry id="rule_other_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_other_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_other_valid_out_maxAllowedAge"><text>20</text></outputEntry>
+        <outputEntry id="rule_other_valid_out_validationMessage"><text>"Vessel age is within acceptable limit"</text></outputEntry>
+        <outputEntry id="rule_other_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول"</text></outputEntry>
+        <outputEntry id="rule_other_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_other_invalid">
+        <description>Other materials exceeding 20 year default limit</description>
+        <inputEntry id="rule_other_invalid_in_vesselAge"><text>&gt; 20</text></inputEntry>
+        <inputEntry id="rule_other_invalid_in_buildMaterial"><text>"OTHER"</text></inputEntry>
+        <inputEntry id="rule_other_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_other_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_other_invalid_out_maxAllowedAge"><text>20</text></outputEntry>
+        <outputEntry id="rule_other_invalid_out_validationMessage"><text>"Vessel exceeds maximum allowed age of 20 years"</text></outputEntry>
+        <outputEntry id="rule_other_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل هذه السفينة - تجاوز الحد الأقصى للعمر 20 سنة"</text></outputEntry>
+        <outputEntry id="rule_other_invalid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+
+      <!-- ════════════════════════════════════════════════════════════════════════════════════════
+           RULE 13: Default fallback - 20 years for unspecified materials
+           القاعدة الافتراضية - 20 سنة للمواد غير المحددة
+           ════════════════════════════════════════════════════════════════════════════════════════ -->
+      <rule id="rule_default_valid">
+        <description>Default: Valid if 20 years or less</description>
+        <inputEntry id="rule_default_valid_in_vesselAge"><text>&lt;= 20</text></inputEntry>
+        <inputEntry id="rule_default_valid_in_buildMaterial"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_valid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_default_valid_out_isValid"><text>true</text></outputEntry>
+        <outputEntry id="rule_default_valid_out_maxAllowedAge"><text>20</text></outputEntry>
+        <outputEntry id="rule_default_valid_out_validationMessage"><text>"Vessel age is within acceptable limit"</text></outputEntry>
+        <outputEntry id="rule_default_valid_out_validationMessageAr"><text>"عمر السفينة ضمن الحد المقبول"</text></outputEntry>
+        <outputEntry id="rule_default_valid_out_requiresException"><text>false</text></outputEntry>
+      </rule>
+      
+      <rule id="rule_default_invalid">
+        <description>Default: Invalid if over 20 years</description>
+        <inputEntry id="rule_default_invalid_in_vesselAge"><text>&gt; 20</text></inputEntry>
+        <inputEntry id="rule_default_invalid_in_buildMaterial"><text>-</text></inputEntry>
+        <inputEntry id="rule_default_invalid_in_vesselCategory"><text>-</text></inputEntry>
+        <outputEntry id="rule_default_invalid_out_isValid"><text>false</text></outputEntry>
+        <outputEntry id="rule_default_invalid_out_maxAllowedAge"><text>20</text></outputEntry>
+        <outputEntry id="rule_default_invalid_out_validationMessage"><text>"Vessel exceeds maximum allowed age of 20 years. Please verify build material for possible exceptions."</text></outputEntry>
+        <outputEntry id="rule_default_invalid_out_validationMessageAr"><text>"لا يمكن تسجيل هذه السفينة - تجاوز الحد الأقصى للعمر. يرجى التحقق من مادة البناء للاستثناءات المحتملة"</text></outputEntry>
+        <outputEntry id="rule_default_invalid_out_requiresException"><text>true</text></outputEntry>
+      </rule>
+
+    </decisionTable>
+  </decision>
+
+</definitions>

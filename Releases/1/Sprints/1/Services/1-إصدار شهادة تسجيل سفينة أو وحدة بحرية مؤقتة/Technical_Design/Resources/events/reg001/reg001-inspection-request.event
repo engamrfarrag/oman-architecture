@@ -1,0 +1,56 @@
+{
+  "key": "reg001-inspection-request",
+  "category": "event",
+  "name": "Vessel Inspection Request",
+  "description": "Request to initiate vessel inspection. Outbound event for Step 20: استدعاء دورة المعاينة",
+  "outboundChannelKeys": ["reg001-outbound-channel"],
+  "payload": [
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "requestId",
+      "type": "string"
+    },
+    {
+      "name": "vesselImoNumber",
+      "type": "string"
+    },
+    {
+      "name": "vesselName",
+      "type": "string"
+    },
+    {
+      "name": "vesselType",
+      "type": "string"
+    },
+    {
+      "name": "vesselLength",
+      "type": "double",
+      "description": "Length in meters - determines inspection requirements (>24m)"
+    },
+    {
+      "name": "inspectionType",
+      "type": "string",
+      "description": "CONSTRUCTION, FLAG_CHANGE, SALE, REGULAR"
+    },
+    {
+      "name": "vesselStatus",
+      "type": "string",
+      "description": "UNDER_CONSTRUCTION, OPERATIONAL"
+    },
+    {
+      "name": "ownerCivilId",
+      "type": "string"
+    },
+    {
+      "name": "portOfRegistry",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}
