@@ -218,14 +218,29 @@ Any prompt following this pattern should trigger the documentation generation wo
 
 **CRITICAL:** Follow these steps in exact order:
 
-#### **Step 1: Identify Service Context**
+#### **Step 1: Convert Service Source Docs (MarkItDown) — MUST BE FIRST**
 
 1. Extract the **service name** or **service code** from the prompt
 2. Locate the service directory structure:
    ```
-   Releases/{release}/Sprints/{sprint}/Services/{service_name}/Technical_Design/Documents/
+   Releases/{release}/Sprints/{sprint}/Services/{service_name}/Technical_Design/
    ```
 3. If service doesn't exist, inform the user and offer to create the structure first
+4. Check if source documentation exists in the service folders (commonly under `Documents/` or `Technical_Design/`)
+5. Identify Word files related to the service: `.docx` (and if present: `.doc`, `.docs`)
+6. **Convert each Word document to Markdown BEFORE any further analysis** using the MarkItDown MCP tool:
+   - Tool: `mcp_microsoft_mar_convert_to_markdown`
+   - Input format:
+     ```
+     file:///{absolute_path_to_docx}
+     ```
+7. Parse and analyze the converted Markdown content and keep it in working context for all subsequent steps
+
+**Example:**
+```
+Source file: "C:/Users/aazab/Desktop/BA/Releases/1/Sprints/1/Services/REG001/Documents/Service_Specification.docx"
+Convert to: Markdown format for analysis
+```
 
 #### **Step 2: Read Service README**
 
@@ -256,23 +271,7 @@ Based on the document type requested, identify:
 
 3. **Load all dependent documents** into working context using parallel `read_file` calls
 
-#### **Step 4: Analyze Service Source Documentation**
-
-1. Check if source documentation exists in `Documents/` or `Technical_Design/` folders
-2. Identify `.docx` files related to the service
-3. **Convert Word documents to Markdown** using the `mcp_microsoft_mar_convert_to_markdown` tool:
-   ```
-   file:///{absolute_path_to_docx}
-   ```
-4. Parse and analyze the converted Markdown content
-
-**Example:**
-```
-Source file: "C:/Users/aazab/Desktop/BA/Releases/1/Sprints/1/Services/REG001/Documents/Service_Specification.docx"
-Convert to: Markdown format for analysis
-```
-
-#### **Step 5: Load Existing Resources**
+#### **Step 4: Load Existing Resources**
 
 If the service has existing implementation assets in `Technical_Design/Resources/`:
 
@@ -290,7 +289,7 @@ If the service has existing implementation assets in `Technical_Design/Resources
 
 **Tool to use:** `read_file` for each resource file
 
-#### **Step 6: Generate or Update Documentation**
+#### **Step 5: Generate or Update Documentation**
 
 Based on all gathered context, generate or update the requested document:
 
@@ -311,7 +310,7 @@ Based on all gathered context, generate or update the requested document:
 
 **Tool to use:** `create_file` or `replace_string_in_file`
 
-#### **Step 7: Update Supporting Files**
+#### **Step 6: Update Supporting Files**
 
 After generating the main document, update:
 
@@ -325,7 +324,7 @@ After generating the main document, update:
 
 **Tools to use:** `replace_string_in_file` or `multi_replace_string_in_file`
 
-#### **Step 8: Commit to Git**
+#### **Step 7: Commit to Git**
 
 Create a clean Git commit with proper structure:
 
