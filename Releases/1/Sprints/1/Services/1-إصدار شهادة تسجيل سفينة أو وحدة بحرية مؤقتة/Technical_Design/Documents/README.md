@@ -240,8 +240,8 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 
 ✔ Folder structure created  
 ✔ Scope completed (Executive Summary + Scope & Objectives)  
-⏳ Stakeholders & governance pending  
-⏳ Process & BPMN pending  
+✔ Stakeholders & governance completed  
+✔ Process & BPMN completed (event-type tags added)  
 ⏳ Capabilities mapping pending  
 ⏳ Functional requirements pending  
 ⏳ Solution design pending  
@@ -252,11 +252,10 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 
 ## 9. Next Steps
 
-1. Define stakeholders and governance (`01-business-analysis/1.2-stakeholders/`)
-2. Create service blueprint and BPMN diagrams (`01-business-analysis/1.3-process/`)
-3. Map capabilities to services (`01-business-analysis/1.4-capabilities/`)
-4. Define functional requirements and user stories (`01-business-analysis/1.5-functional-requirements/`)
-5. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
+1. Review service blueprint and BPMN documents (`01-business-analysis/1.3-process/`) with business owners
+2. Map capabilities to services (`01-business-analysis/1.4-capabilities/`)
+3. Define functional requirements and user stories (`01-business-analysis/1.5-functional-requirements/`)
+4. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
 
 ---
 
@@ -266,5 +265,6 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 |---------|------|--------|---------|
 | 1.0 | 2026-01-05 | System | Initial structure created |
 | 1.1 | 2026-01-05 | Copilot | Added Scope documents (Executive Summary + Scope & Objectives) |
+| 1.2 | 2026-01-06 | Copilot | Added Stakeholders & Governance document |
 
 ---
