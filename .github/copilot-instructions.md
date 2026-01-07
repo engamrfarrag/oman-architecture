@@ -467,5 +467,74 @@ Next steps:
 
 ---
 
-**Last Updated:** 2026-01-05
+## Role-Specific Instruction Files
+
+This project uses **role-specific instruction files** to provide targeted guidance for each role. These files extend (not replace) the rules in this main instruction file.
+
+### Available Instruction Files
+
+| File | Role | Scope |
+|------|------|-------|
+| [BA-instructions.md](instructions/BA-instructions.md) | Business Analyst | Scope, Stakeholders, Process, Capabilities, Pre-FR |
+| [FR-instructions.md](instructions/FR-instructions.md) | BA / Technical Writer | User Stories, Use Cases, Functional Requirements |
+| [SA-instructions.md](instructions/SA-instructions.md) | Solution Architect | Domain Model, Architecture, Services, Internal Design |
+| [Process-instructions.md](instructions/Process-instructions.md) | Process Designer | BPMN, Subprocess, Swimlanes, Gateways |
+
+### SA Sub-Instruction Files (Detailed)
+
+| File | Scope |
+|------|-------|
+| [SA-Flowable-instructions.md](instructions/SA-Flowable-instructions.md) | BPMN, DMN, Process Orchestration, Flowable Engine |
+| [SA-ServiceNaming-instructions.md](instructions/SA-ServiceNaming-instructions.md) | Service Naming Standards, Categories |
+| [SA-ServiceInternalDesign-instructions.md](instructions/SA-ServiceInternalDesign-instructions.md) | DDD Layers, Clean Architecture |
+| [SA-UIInteraction-instructions.md](instructions/SA-UIInteraction-instructions.md) | Angular + BFF Pattern, UI Abstraction |
+
+### Instruction File Rules
+
+1. **Always read this main file first** - It contains global rules that apply to all roles
+2. **Load role-specific files when needed** - Based on the prompt pattern `"As a {Role}, ..."`
+3. **Never duplicate content** - Reference related instruction files instead
+4. **Extend, don't override** - Role files add detail; they don't replace main rules
+5. **Maintain traceability** - Each file links to related instruction files
+
+### Role-to-File Mapping
+
+| Prompt Pattern | Primary File | Secondary Files |
+|----------------|--------------|-----------------|
+| "As a BA, ..." | BA-instructions.md | FR-instructions.md, Process-instructions.md |
+| "As a Business Analyst, ..." | BA-instructions.md | FR-instructions.md, Process-instructions.md |
+| "As an Architect, ..." | SA-instructions.md | SA-Flowable, SA-ServiceNaming, SA-ServiceInternalDesign, SA-UIInteraction |
+| "As a Solution Architect, ..." | SA-instructions.md | SA-Flowable, SA-ServiceNaming, SA-ServiceInternalDesign, SA-UIInteraction |
+| "As a SA, ..." | SA-instructions.md | SA-Flowable, SA-ServiceNaming, SA-ServiceInternalDesign, SA-UIInteraction |
+| "Generate FR for ..." | FR-instructions.md | BA-instructions.md |
+| "Design process for ..." | Process-instructions.md | BA-instructions.md |
+| "Generate service design ..." | SA-ServiceInternalDesign-instructions.md | SA-instructions.md |
+| "Design Flowable ..." | SA-Flowable-instructions.md | SA-instructions.md |
+| "Generate UI interaction ..." | SA-UIInteraction-instructions.md | SA-instructions.md |
+
+### Documentation Flow by Role
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                     ROLE RESPONSIBILITY FLOW                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   BA (Process-instructions.md)                                   │
+│   └── Process Design & BPMN                                      │
+│            ↓                                                     │
+│   BA (BA-instructions.md)                                        │
+│   └── Capabilities & Pre-FR Optimization                         │
+│            ↓                                                     │
+│   BA (FR-instructions.md)                                        │
+│   └── User Stories → Use Cases → Functional Requirements         │
+│            ↓                                                     │
+│   SA (SA-instructions.md)                                        │
+│   └── Domain Model → Architecture → Services → Internal Design   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+**Last Updated:** 2026-01-07
 **Applies To:** All services in the BA workspace
