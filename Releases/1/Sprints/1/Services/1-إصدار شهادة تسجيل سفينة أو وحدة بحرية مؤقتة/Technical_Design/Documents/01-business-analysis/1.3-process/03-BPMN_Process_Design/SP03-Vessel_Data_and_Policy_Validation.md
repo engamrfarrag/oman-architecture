@@ -1,5 +1,12 @@
 # SP03 – Vessel/Unit Data Capture & Policy Validation
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Capturing vessel/unit master data needed for downstream routing
+- Validating vessel age against configurable policy (DMN/config)
+- Detecting and applying penalty triggers based on timing rules
+- Blocking prohibited/banned vessels based on configured policy
+
 ## Purpose
 Collect vessel/unit details and apply key business rules (age policy, penalty trigger, prohibited list).
 
@@ -41,17 +48,39 @@ Applicant profile validated (SP02 completed).
 | 14 | If not prohibited: continue to SP04 | MTCIT System |  |
 
 ## Gateways
-- **G05 – Vessel age policy passed?**
-  - Pass → proceed
-  - Fail → stop with user warning / allow correction (as defined by policy)
 
-- **G06 – Penalty applies?**
-  - Yes → add penalty
-  - No → proceed
+### G05 – Vessel age policy passed?
+- Pass → proceed
+- Fail → stop with user warning / allow correction (as defined by policy)
 
-- **G07 – Vessel prohibited/banned?**
-  - Yes → reject + notify
-  - No → proceed
+### Decision Rule (Business)
+- Inputs: vessel/unit type, build year, (optional) material/category
+- Rule Source (DMN / Config): `reg001-vessel-age-validation.dmn`
+- Outcomes:
+  - Pass → continue
+  - Fail → block progression; allow re-entry/correction per policy
+
+### G06 – Penalty applies?
+- Yes → add penalty
+- No → proceed
+
+### Decision Rule (Business)
+- Inputs: construction end date, submission date, configured grace period (example: 30 days)
+- Rule Source (DMN / Config): `reg001-penalty-calculation.dmn` + config (REG-001-CONF-02)
+- Outcomes:
+  - Yes → add penalty line item to fees
+  - No → proceed without penalty
+
+### G07 – Vessel prohibited/banned?
+- Yes → reject + notify
+- No → proceed
+
+### Decision Rule (Business)
+- Inputs: vessel identifiers/attributes required to match banned list
+- Rule Source (DMN / Config): Config (REG-001-CONF-04) prohibited/banned vessel policy list
+- Outcomes:
+  - Prohibited → reject + notify
+  - Not prohibited → continue to SP04
 
 ## Notes
 - Age validation is configuration/DMN-driven; actual thresholds may vary by material/category.

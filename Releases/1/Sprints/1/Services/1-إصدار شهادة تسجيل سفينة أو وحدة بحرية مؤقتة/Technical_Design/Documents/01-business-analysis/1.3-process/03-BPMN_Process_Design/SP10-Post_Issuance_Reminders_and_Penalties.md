@@ -1,5 +1,12 @@
 # SP10 – Post-Issuance Reminders & Overdue Penalties (Monitoring)
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Scheduling and sending periodic reminders to complete permanent registration
+- Checking whether permanent registration has been completed and stopping monitoring
+- Evaluating overdue thresholds and applying penalties per configured rules
+- Notifying the applicant on reminders and penalties
+
 ## Purpose
 After issuing the temporary certificate, send periodic reminders to complete permanent registration and apply penalties when overdue, based on configured timings.
 
@@ -35,9 +42,17 @@ Temporary certificate issued (SP09 completed).
 | 7 | If overdue: apply penalty and notify applicant | MTCIT System | Message (send) |
 
 ## Gateways
-- **G16 – Permanent registration completed?**
-  - Yes → stop monitoring
-  - No → continue monitoring
+
+### G16 – Permanent registration completed?
+- Yes → stop monitoring
+- No → continue monitoring
+
+### Decision Rule (Business)
+- Inputs: permanent registration completion status (by request/certificate reference)
+- Rule Source (DMN / Config): Downstream permanent registration status (event/API) + monitoring policy
+- Outcomes:
+  - Completed → stop reminders and close monitoring
+  - Not completed → continue reminders; evaluate overdue penalties
 
 ## Notes
 - This subprocess is typically modeled as a separate timer-driven process (or event subprocess) rather than a simple linear flow.

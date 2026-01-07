@@ -48,9 +48,14 @@ Technical_Design/Documents/
 │   │   └── 02-Capability_to_Domain_Mapping
 │   │
 │   └── 1.5-functional-requirements/
-│       ├── 01-Functional_Requirements_List
-│       ├── 02-Use_Cases_and_User_Stories
-│       └── 03-Acceptance_Criteria
+│       ├── README.md
+│       ├── 00-overview/
+│       ├── 01-user-stories/
+│       ├── 02-use-cases/
+│       ├── 03-functional-requirements/
+│       ├── 04-cross-cutting/
+│       ├── 05-integrations/
+│       └── 06-acceptance-criteria/
 │
 ├── 02-solution-design/
 │   ├── 2.1-domain-model/
@@ -242,8 +247,8 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 ✔ Scope completed (Executive Summary + Scope & Objectives)  
 ✔ Stakeholders & governance completed  
 ✔ Process & BPMN completed (event-type tags added)  
-⏳ Capabilities mapping pending  
-⏳ Functional requirements pending  
+✔ Capabilities mapping completed  
+✔ Functional requirements completed (entry: `01-business-analysis/1.5-functional-requirements/README.md`)  
 ⏳ Solution design pending  
 ⏳ Delivery planning pending  
 ⏳ DevOps configuration pending
@@ -253,9 +258,8 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 ## 9. Next Steps
 
 1. Review service blueprint and BPMN documents (`01-business-analysis/1.3-process/`) with business owners
-2. Map capabilities to services (`01-business-analysis/1.4-capabilities/`)
-3. Define functional requirements and user stories (`01-business-analysis/1.5-functional-requirements/`)
-4. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
+2. Start solution design (Domain Model + C4 + Integration Architecture) under `02-solution-design/`
+3. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
 
 ---
 
@@ -266,5 +270,6 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 | 1.0 | 2026-01-05 | System | Initial structure created |
 | 1.1 | 2026-01-05 | Copilot | Added Scope documents (Executive Summary + Scope & Objectives) |
 | 1.2 | 2026-01-06 | Copilot | Added Stakeholders & Governance document |
+| 1.3 | 2026-01-06 | Copilot | Added Capabilities mapping documents |
 
 ---

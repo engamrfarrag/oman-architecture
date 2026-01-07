@@ -1,5 +1,11 @@
 # SP05 – MAFWR Approval (Fishing Vessels)
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Determining whether the request requires MAFWR approval (fishing vessels)
+- Sending the approval request to MAFWR and tracking the response
+- Applying a hard-gate decision (approve/reject) and notifying the applicant
+
 ## Purpose
 Obtain approval from MAFWR for fishing vessels before proceeding to issuance.
 
@@ -33,13 +39,28 @@ Documents are complete (SP04 completed) AND vessel category indicates fishing ve
 | 7 | If not fishing vessel: skip SP05 | MTCIT System |  |
 
 ## Gateways
-- **G09 – Fishing vessel?**
-  - Yes → run SP05
-  - No → skip
 
-- **G10 – MAFWR approved?**
-  - Approved → proceed
-  - Rejected → reject + notify
+### G09 – Fishing vessel?
+- Yes → run SP05
+- No → skip
+
+### Decision Rule (Business)
+- Inputs: vessel/unit category/type, intended activity
+- Rule Source (DMN / Config): `reg001-mafwr-required.dmn` (or equivalent config/policy mapping)
+- Outcomes:
+  - Yes (requires MAFWR) → send approval request
+  - No → continue to next routing without MAFWR
+
+### G10 – MAFWR approved?
+- Approved → proceed
+- Rejected → reject + notify
+
+### Decision Rule (Business)
+- Inputs: MAFWR decision status, rejection reason (if any)
+- Rule Source (DMN / Config): External decision (MAFWR response)
+- Outcomes:
+  - Approved → proceed to downstream routing (SP06/SP07/SP08)
+  - Rejected → reject + notify with reason; terminate
 
 ## Notes
 - Approval is conditional and acts as a hard gate for fishing vessels.

@@ -1,5 +1,12 @@
 # SP09 – Certificate Issuance & Notifications
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Verifying the request is eligible for issuance after successful payment
+- Generating the temporary registration certificate (PDF + QR)
+- Persisting certificate metadata and linking it to the request
+- Notifying the applicant and providing certificate access
+
 ## Purpose
 Issue the temporary registration certificate after successful payment and notify the applicant.
 
@@ -30,6 +37,13 @@ Payment successful (SP08 completed).
 ## Gateways
 - (Optional) **Pre-issuance eligibility check**
   - If any mandatory dependency is missing (should not happen in normal flow), stop issuance and notify operations.
+
+### Decision Rule (Business)
+- Inputs: payment success state, completion state of required subprocesses, certificate generation prerequisites
+- Rule Source (DMN / Config): Orchestrator state/guards (system policy)
+- Outcomes:
+  - Eligible → issue certificate
+  - Not eligible → stop issuance; notify operations/applicant as applicable
 
 ## Notes
 - Notifications should include: certificate reference, validity period (config), and next-step guidance to complete permanent registration.

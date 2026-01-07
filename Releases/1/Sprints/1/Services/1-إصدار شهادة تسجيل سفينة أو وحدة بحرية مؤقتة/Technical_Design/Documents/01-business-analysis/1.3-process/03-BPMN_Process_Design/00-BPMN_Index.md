@@ -5,6 +5,8 @@ This folder contains BPMN-ready process specifications for REG001. Each sub-proc
 - Steps (sequenced)
 - Swimlane mapping
 - Gateways (decision logic)
+- Functional Responsibility (FR anchors)
+- Decision Rule blocks under each gateway (inputs + source + outcomes)
 - External dependencies/events
 
 ## Files

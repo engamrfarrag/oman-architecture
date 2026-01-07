@@ -19,7 +19,7 @@ It is intended to be:
 ## 2. Master Folder Structure
 
 ```
-releases/{number}/sprint/{number}/services/{service_name}/Technical_design/Documents/
+Releases/{number}/Sprints/{number}/Services/{service_name}/Technical_Design/Documents/
 │
 ├── README.md
 │
@@ -66,18 +66,24 @@ releases/{number}/sprint/{number}/services/{service_name}/Technical_design/Docum
 │   │   ├── 02-Service_Overview
 │   │   ├── 03-API_Contracts/
 │   │   │   └── README
-│   │   └── 04-Event_Schemas
+│   │   ├── 04-Event_Schemas
+│   │   └── 05-Service_State_Models
 │   │
-│   ├── 2.4-cross-cutting/
+│   ├── 2.4-ui-interaction-design/
+│   │   └── 01-UI_Screen_Flows_and_States
+│   │
+│   ├── 2.5-cross-cutting/
 │   │   ├── 01-Security_Trust_Architecture
 │   │   ├── 02-Non_Functional_Requirements
 │   │   └── 03-Notifications_Communication
 │   │
-│   └── 2.5-data-architecture/
-│       ├── 01-Logical_Data_Model
-│       ├── 02-Physical_Data_Considerations
-│       ├── 03-Data_Ownership_Lifecycle
-│       └── 04-Reporting_Analytics
+│   ├── 2.6-data-architecture/
+│   │   ├── 01-Logical_Data_Model
+│   │   ├── 02-Physical_Data_Considerations
+│   │   ├── 03-Data_Ownership_Lifecycle
+│   │   └── 04-Reporting_Analytics
+│   │
+│   └── 2.7-service-internal-design/
 │
 ├── 03-delivery/
 │   ├── 3.1-governance/
@@ -204,10 +210,12 @@ releases/{number}/sprint/{number}/services/{service_name}/Technical_design/Docum
 | **Phase 4: Domain Modeling** | `2.1-domain-model/` | Context Map, UML | Phase 3 |
 | **Phase 5: Architecture** | `2.2-architecture/` | C4 Diagrams, Integration | Phase 4 |
 | **Phase 6: Service Design** | `2.3-services/` | Microservices Specs | Phase 5 |
-| **Phase 7: Cross-Cutting** | `2.4-cross-cutting/` | Security, NFRs | Phase 5 |
-| **Phase 8: Data Architecture** | `2.5-data-architecture/` | Data Models, Lifecycle | Phase 6 |
-| **Phase 9: Delivery Planning** | `03-delivery/` | Roadmap, RACI, QA | Phase 7+8 |
-| **Phase 10: DevOps** | `04-devops-deployment/` | CI/CD, Operations | Phase 9 |
+| **Phase 7: UI Interaction Design** | `2.4-ui-interaction-design/` | Screen Flows, UI States | Phase 5+6 |
+| **Phase 8: Cross-Cutting** | `2.5-cross-cutting/` | Security, NFRs, Notifications | Phase 5+6 |
+| **Phase 9: Data Architecture** | `2.6-data-architecture/` | Data Models, Ownership, Lifecycle | Phase 6 |
+| **Phase 10: Service Internal Design** | `2.7-service-internal-design/` | Aggregates, App Services, Policies | Phase 6–9 |
+| **Phase 11: Delivery Planning** | `03-delivery/` | Roadmap, RACI, QA | Phase 6–10 |
+| **Phase 12: DevOps** | `04-devops-deployment/` | CI/CD, Operations | Phase 11 |
 
 ---
 

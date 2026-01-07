@@ -1,5 +1,12 @@
 # SP02 – Applicant Profiling + CR/Activity Validation
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Capturing applicant type (individual/company) and required identifiers
+- Validating company Commercial Registration (CR) where applicable
+- Validating company activity eligibility aligned to vessel/unit type
+- Enforcing hard-stop rejection and notifications on failed eligibility checks
+
 ## Purpose
 Capture applicant type (individual/company) and validate company registration and activity where applicable.
 
@@ -40,16 +47,38 @@ CC01 Security Authentication (ROP PKI) succeeded.
 | 13 | If active: continue to SP03 | MTCIT System |  |
 
 ## Gateways
-- **G02 – Beneficiary type?**
-  - Individual → skip validations
-  - Company → CR + activity validations
 
-- **G03 – CR valid?**
-  - Valid → proceed
-  - Invalid → reject + notify
+### G02 – Beneficiary type?
+- Individual → skip validations
+- Company → CR + activity validations
 
-- **G04 – Activity active/eligible?**
-  - Active/eligible → proceed
+### Decision Rule (Business)
+- Inputs: beneficiary type selection
+- Rule Source (DMN / Config): Config/UI rules
+- Outcomes:
+  - Individual → proceed to SP03
+  - Company → perform CR + activity validations
+
+### G03 – CR valid?
+- Valid → proceed
+- Invalid → reject + notify
+
+### Decision Rule (Business)
+- Inputs: CR number, company identifiers (as provided)
+- Rule Source (DMN / Config): Invest Easy (Oman Business Platform) integration response
+- Outcomes:
+  - Valid → continue
+  - Invalid → reject + notify (include reason if provided)
+
+### G04 – Activity active/eligible?
+- Active/eligible → proceed
+- Inactive/not eligible → reject + notify
+
+### Decision Rule (Business)
+- Inputs: CR number, intended activity, vessel/unit type/category
+- Rule Source (DMN / Config): Invest Easy activity status + eligibility mapping (config/policy)
+- Outcomes:
+  - Active/eligible → proceed to SP03
   - Inactive/not eligible → reject + notify
 
 ## Notes

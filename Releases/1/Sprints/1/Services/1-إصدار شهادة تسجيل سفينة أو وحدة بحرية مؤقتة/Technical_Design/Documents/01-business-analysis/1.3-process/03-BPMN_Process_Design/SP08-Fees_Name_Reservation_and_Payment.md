@@ -1,5 +1,12 @@
 # SP08 – Fees, Name Reservation, and Payment
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Calculating fees and penalties based on configured rules
+- Reserving vessel name for a configured payment window and releasing on failure/expiry
+- Generating invoice and initiating payment
+- Handling payment outcomes and driving the next step (issuance or termination/retry)
+
 ## Purpose
 Calculate fees/penalties, reserve the vessel name (temporary hold), generate invoice, and complete payment.
 
@@ -38,9 +45,17 @@ All required validations and conditional approvals (SP05/SP06/SP07) are satisfie
 | 10 | If successful: store receipt and continue to certificate issuance (SP09) | MTCIT System |  |
 
 ## Gateways
-- **G15 – Payment successful?**
-  - Yes → proceed to issuance
-  - No → stop/retry per policy; release name hold
+
+### G15 – Payment successful?
+- Yes → proceed to issuance
+- No → stop/retry per policy; release name hold
+
+### Decision Rule (Business)
+- Inputs: payment status/callback from gateway, invoice reference, expiry/timeout status
+- Rule Source (DMN / Config): Payment gateway integration contract + configured payment expiry policy
+- Outcomes:
+  - Success → proceed to SP09
+  - Failed/Cancelled/Expired → release name reservation; notify; terminate or allow retry per policy
 
 ## Notes
 - The workspace includes a reusable “common payment subprocess”; model SP08 as a call activity to that subprocess.

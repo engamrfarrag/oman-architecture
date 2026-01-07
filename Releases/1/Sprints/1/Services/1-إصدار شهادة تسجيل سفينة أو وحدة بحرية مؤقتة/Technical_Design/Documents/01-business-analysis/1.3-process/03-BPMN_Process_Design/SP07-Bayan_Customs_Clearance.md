@@ -1,5 +1,11 @@
 # SP07 – Bayan Customs Clearance (Conditional)
 
+## Functional Responsibility
+This subprocess is responsible for:
+- Determining whether Bayan/customs clearance is required for the request
+- Sending customs clearance requests and receiving documents/decisions
+- Enforcing a hard-gate decision (cleared/rejected) and notifying the applicant
+
 ## Purpose
 Request and receive customs/import documentation and clearance decision from Bayan when required.
 
@@ -33,13 +39,28 @@ Routing rules determine that customs clearance is required (e.g., imported vesse
 | 7 | If cleared: continue to payment and issuance | MTCIT System |  |
 
 ## Gateways
-- **G13 – Customs/Bayan required?**
-  - Yes → run SP07
-  - No → skip
 
-- **G14 – Customs cleared?**
-  - Cleared → proceed
-  - Rejected → reject + notify
+### G13 – Customs/Bayan required?
+- Yes → run SP07
+- No → skip
+
+### Decision Rule (Business)
+- Inputs: vessel/unit path indicators (e.g., imported vs local), acquisition context, vessel attributes
+- Rule Source (DMN / Config): `reg001-customs-required.dmn`
+- Outcomes:
+  - Yes → send Bayan request
+  - No → skip SP07
+
+### G14 – Customs cleared?
+- Cleared → proceed
+- Rejected → reject + notify
+
+### Decision Rule (Business)
+- Inputs: Bayan clearance status, import document (if any), rejection reason (if any)
+- Rule Source (DMN / Config): Bayan Customs response
+- Outcomes:
+  - Cleared → proceed to payment/issuance
+  - Rejected → reject + notify with reason; terminate
 
 ## Notes
 - Model Bayan response as an intermediate message catch event; include timeouts per policy.
