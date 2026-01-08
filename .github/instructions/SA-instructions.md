@@ -36,7 +36,30 @@ into a **build-ready, technology-agnostic solution design**.
 
 ## 3. Mandatory Inputs (STOP if Missing)
 
-Before generating Solution Design, you MUST:
+Before generating Solution Design, you MUST complete these steps IN ORDER:
+
+### Step 0: Read Service Source DOCX (FIRST)
+
+**CRITICAL:** Always read the original service specification DOCX file using MarkItDown:
+
+```
+Tool: mcp_microsoft_mar_convert_to_markdown
+Input: file:///{path_to_service_docx}
+```
+
+**Locations to check:**
+- `Services/{service_name}/Documents/*.docx`
+- `Services/{service_name}/Technical_Design/Documents/*.docx`
+
+**Extract from DOCX:**
+- Service procedures (REG-xx-xx codes)
+- Configuration codes (SET-xx, CONF-xx)
+- Business rules and conditions
+- Data elements and field definitions
+- Integration requirements
+
+### Step 1-5: Read Required Documents
+
 1. Read the service `README.md` in `Technical_Design/Documents/`
 2. Read Business Process Overview and BPMN subprocess documents (SPxx, CCxx)
 3. Read Capability → Domain and Capability → Logical Service mappings

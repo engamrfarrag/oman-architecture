@@ -220,27 +220,44 @@ Any prompt following this pattern should trigger the documentation generation wo
 
 #### **Step 1: Convert Service Source Docs (MarkItDown) — MUST BE FIRST**
 
+**CRITICAL:** This step is NON-NEGOTIABLE. You MUST read the original service DOCX file before any document generation or update.
+
 1. Extract the **service name** or **service code** from the prompt
 2. Locate the service directory structure:
    ```
-   Releases/{release}/Sprints/{sprint}/Services/{service_name}/Technical_Design/
+   Releases/{release}/Sprints/{sprint}/Services/{service_name}/
    ```
 3. If service doesn't exist, inform the user and offer to create the structure first
-4. Check if source documentation exists in the service folders (commonly under `Documents/` or `Technical_Design/`)
-5. Identify Word files related to the service: `.docx` (and if present: `.doc`, `.docs`)
-6. **Convert each Word document to Markdown BEFORE any further analysis** using the MarkItDown MCP tool:
-   - Tool: `mcp_microsoft_mar_convert_to_markdown`
-   - Input format:
-     ```
-     file:///{absolute_path_to_docx}
-     ```
-7. Parse and analyze the converted Markdown content and keep it in working context for all subsequent steps
+4. **Search for DOCX files** in these locations (in order):
+   - `Services/{service_name}/Documents/` (root Documents folder)
+   - `Services/{service_name}/Technical_Design/Documents/`
+   - `Services/{service_name}/` (service root)
+   
+5. **ALWAYS use the MarkItDown MCP tool to convert DOCX:**
+   ```
+   Tool: mcp_microsoft_mar_convert_to_markdown
+   Input: file:///{absolute_path_to_docx}
+   ```
+   
+6. **Extract key information from the DOCX:**
+   - Service procedures (REG-01-xx codes)
+   - Configuration settings (SET-xx, CONF-xx codes)
+   - Business rules and conditions
+   - Required documents list
+   - Integration points
+   - Data elements and fields
+   - Actors and roles
+
+7. **Keep the converted content in working context** for all subsequent steps
 
 **Example:**
 ```
-Source file: "C:/Users/aazab/Desktop/BA/Releases/1/Sprints/1/Services/REG001/Documents/Service_Specification.docx"
-Convert to: Markdown format for analysis
+Source file: "C:/Users/aazab/Desktop/BA/Releases/1/Sprints/1/Services/1-إصدار شهادة تسجيل سفينة/Documents/إصدار شهادة تسجيل سفينة.docx"
+Tool: mcp_microsoft_mar_convert_to_markdown
+Input: file:///C:/Users/aazab/Desktop/BA/Releases/1/Sprints/1/Services/1-إصدار%20شهادة%20تسجيل%20سفينة/Documents/إصدار%20شهادة%20تسجيل%20سفينة.docx
 ```
+
+**STOP CONDITION:** If no DOCX source file exists, inform the user and ask them to provide the service specification document before proceeding.
 
 #### **Step 2: Read Service README**
 
