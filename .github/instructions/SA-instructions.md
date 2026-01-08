@@ -40,12 +40,65 @@ Before generating Solution Design, you MUST:
 1. Read the service `README.md` in `Technical_Design/Documents/`
 2. Read Business Process Overview and BPMN subprocess documents (SPxx, CCxx)
 3. Read Capability → Domain and Capability → Logical Service mappings
-4. Identify:
+4. **Read ALL Functional Requirements** (see Section 3.1 below)
+5. Identify:
    - Business capabilities
    - Logical services
    - Process orchestration vs domain ownership
 
 **If any required input is missing, explicitly state what is missing and STOP.**
+
+---
+
+## 3.1 Read ALL Functional Requirements (MANDATORY)
+
+**CRITICAL:** Before generating or updating ANY Solution Design document, you MUST read ALL functional requirements. This is NON-NEGOTIABLE.
+
+### Required Reading Checklist
+
+| Folder | Files to Read | Extract |
+|--------|---------------|---------|
+| `00-overview/` | FR-00-Overview, Actors-and-Roles, Data-Dictionary, FR-Coverage-Matrix | Context, actors, data elements |
+| `01-user-stories/` | ALL US-xx files | Business intent, acceptance criteria |
+| `02-use-cases/` | ALL UC-xx files | System behavior, flows, gateways |
+| `03-functional-requirements/` | ALL FR-SPxx files | Detailed requirements, rules, triggers |
+| `04-cross-cutting/` | ALL FR-CCxx files | Security, notifications, audit |
+| `05-integrations/` | ALL FR-INT-xx files | External systems, contracts |
+| `06-acceptance-criteria/` | ALL files | Testable criteria |
+
+### Domain Model Extraction from FRs
+
+When reading FRs, extract and document:
+
+1. **Aggregates & Entities:**
+   - Look for nouns: "request", "vessel", "applicant", "invoice", "certificate"
+   - Identify ownership: which service owns which entity
+
+2. **Value Objects:**
+   - Look for composite data: "address", "money", "period", "dimensions"
+
+3. **Enumerations:**
+   - Look for status values: "DRAFT, SUBMITTED, APPROVED"
+   - Look for types: "INDIVIDUAL, COMPANY"
+
+4. **Domain Events:**
+   - Look for triggers: "when payment is confirmed", "after approval"
+   - Look for notifications: "notify applicant"
+
+5. **Business Rules:**
+   - Look for validations: "must be", "shall not exceed"
+   - Look for DMN references: "reg001-xxx.dmn"
+
+6. **Configuration:**
+   - Look for SET-xx codes (master data settings)
+   - Look for CONF-xx codes (process configurations)
+
+### Stop Condition
+
+**STOP and inform the user if:**
+- Functional requirements folder is empty
+- FR-Coverage-Matrix shows gaps
+- Key subprocesses lack FR documentation
 
 ---
 
@@ -322,7 +375,13 @@ Before generating Solution Design, verify:
 1. ✅ Scope and Stakeholders documented
 2. ✅ BPMN subprocesses with Functional Responsibility
 3. ✅ Capability mapping complete
-4. ✅ Functional Requirements with traceability
+4. ✅ **ALL Functional Requirements read** (see Section 3.1):
+   - ALL FR-SPxx files (subprocess requirements)
+   - ALL UC-xx files (use cases)
+   - ALL US-xx files (user stories)
+   - ALL FR-INT-xx files (integrations)
+   - ALL FR-CCxx files (cross-cutting)
+   - FR-Coverage-Matrix verified
 5. ✅ DMN rules documented in Resources
 
 ---

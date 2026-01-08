@@ -271,6 +271,54 @@ Based on the document type requested, identify:
 
 3. **Load all dependent documents** into working context using parallel `read_file` calls
 
+#### **Step 3.1: Read ALL Functional Requirements (MANDATORY for Solution Design)**
+
+**CRITICAL:** Before generating or updating ANY document in `02-solution-design/`, you MUST read ALL functional requirements documents. This is NON-NEGOTIABLE.
+
+**When generating Solution Design documents (Domain Model, Architecture, Services, etc.):**
+
+1. **List the functional-requirements folder structure:**
+   ```
+   list_dir: 01-business-analysis/1.5-functional-requirements/
+   ```
+
+2. **Read ALL documents in these subfolders:**
+
+   | Subfolder | What to Read | Purpose |
+   |-----------|--------------|---------|
+   | `00-overview/` | ALL files (FR-00-Overview, Actors-and-Roles, Data-Dictionary, FR-Coverage-Matrix) | Context and coverage |
+   | `01-user-stories/` | ALL US-xx files | Business intent |
+   | `02-use-cases/` | ALL UC-xx files | System behavior |
+   | `03-functional-requirements/` | ALL FR-SPxx files | Detailed requirements |
+   | `04-cross-cutting/` | ALL FR-CCxx files | Cross-cutting concerns |
+   | `05-integrations/` | ALL FR-INT-xx files | Integration requirements |
+   | `06-acceptance-criteria/` | ALL files | Acceptance criteria |
+
+3. **Extract domain-relevant information:**
+   - Aggregates and entities mentioned
+   - Business rules and validations
+   - State transitions
+   - Events and triggers
+   - Integration points
+   - Configuration codes (SET-xx, CONF-xx)
+
+4. **Create a mental checklist of FR-derived concepts:**
+   - [ ] All capabilities mapped (CAP-01 to CAP-xx)
+   - [ ] All subprocesses covered (SP01 to SPxx)
+   - [ ] All integrations documented (INT-01 to INT-xx)
+   - [ ] All cross-cutting concerns included (CC01 to CCxx)
+
+**Example for Domain Model generation:**
+```
+Before generating 02-solution-design/2.1-domain-model/:
+1. Read ALL FR-SPxx files → Extract aggregates, entities, enums
+2. Read ALL UC-xx files → Understand system behavior
+3. Read ALL FR-INT-xx files → Identify integration entities
+4. Read FR-Coverage-Matrix → Ensure all capabilities are represented
+```
+
+**STOP CONDITION:** If functional requirements are incomplete or missing, inform the user and suggest generating them first before proceeding with Solution Design.
+
 #### **Step 4: Load Existing Resources**
 
 If the service has existing implementation assets in `Technical_Design/Resources/`:
