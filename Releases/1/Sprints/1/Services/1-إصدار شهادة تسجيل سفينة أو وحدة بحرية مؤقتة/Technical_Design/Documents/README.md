@@ -249,7 +249,9 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 ✔ Process & BPMN completed (event-type tags added)  
 ✔ Capabilities mapping completed  
 ✔ Functional requirements completed (entry: `01-business-analysis/1.5-functional-requirements/README.md`)  
-⏳ Solution design pending  
+✔ Domain Model completed (UML Structure + Context Map + ACL/SharedKernel)  
+⏳ Architecture (C4 + Integration) pending  
+⏳ Services design pending  
 ⏳ Delivery planning pending  
 ⏳ DevOps configuration pending
 
@@ -257,9 +259,10 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 
 ## 9. Next Steps
 
-1. Review service blueprint and BPMN documents (`01-business-analysis/1.3-process/`) with business owners
-2. Start solution design (Domain Model + C4 + Integration Architecture) under `02-solution-design/`
-3. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
+1. Review Domain Model documents (`02-solution-design/2.1-domain-model/`) with Solution Architects
+2. Generate C4 Architecture and Integration Architecture under `02-solution-design/2.2-architecture/`
+3. Generate Service Decomposition and API Contracts under `02-solution-design/2.3-services/`
+4. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
 
 ---
 
@@ -271,5 +274,6 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 | 1.1 | 2026-01-05 | Copilot | Added Scope documents (Executive Summary + Scope & Objectives) |
 | 1.2 | 2026-01-06 | Copilot | Added Stakeholders & Governance document |
 | 1.3 | 2026-01-06 | Copilot | Added Capabilities mapping documents |
+| 1.4 | 2026-01-08 | Copilot | Added Domain Model (UML Structure, Context Map, ACL/SharedKernel) |
 
 ---

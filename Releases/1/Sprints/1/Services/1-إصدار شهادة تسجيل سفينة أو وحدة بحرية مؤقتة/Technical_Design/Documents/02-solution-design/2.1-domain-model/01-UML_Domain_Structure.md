@@ -1,0 +1,857 @@
+# REG001 – UML Domain Structure
+
+> **Service Code:** REG001  
+> **Service Name (EN):** Issuing Temporary Registration Certificate for a Ship or Marine Unit  
+> **Service Name (AR):** إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة  
+> **Document Type:** Domain Model – UML Structure  
+> **Version:** 1.0  
+> **Last Updated:** 2026-01-08
+
+---
+
+## 1. Purpose / الغرض
+
+This document defines the **domain model structure** for REG001, including:
+- Aggregates and Aggregate Roots
+- Entities within each aggregate
+- Value Objects
+- Domain Events
+- Conceptual class diagrams
+
+The model is **technology-agnostic** and focuses on business concepts derived from the BPMN processes, capabilities, and business rules.
+
+---
+
+## 2. Domain Model Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     REG001 DOMAIN MODEL OVERVIEW                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                 REGISTRATION REQUEST (Core Aggregate)                │   │
+│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                 │   │
+│   │   │  Applicant  │  │   Vessel    │  │  Documents  │                 │   │
+│   │   │  Snapshot   │  │  Snapshot   │  │   Bundle    │                 │   │
+│   │   └─────────────┘  └─────────────┘  └─────────────┘                 │   │
+│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                 │   │
+│   │   │  Approval   │  │   Payment   │  │ Certificate │                 │   │
+│   │   │   Status    │  │   Record    │  │   Issuance  │                 │   │
+│   │   └─────────────┘  └─────────────┘  └─────────────┘                 │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│   │    Vessel    │  │  Applicant   │  │   Invoice    │  │ Certificate  │    │
+│   │   Profile    │  │   Profile    │  │   Aggregate  │  │  Aggregate   │    │
+│   │  (Separate)  │  │  (Separate)  │  │              │  │              │    │
+│   └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Aggregates
+
+### 3.1 Registration Request Aggregate (Core)
+
+**Aggregate Root:** `RegistrationRequest`
+
+This is the **central aggregate** that orchestrates the temporary registration process. It maintains the lifecycle state of a registration request from initiation through certificate issuance.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `requestId` | RequestId (VO) | Unique identifier for the registration request |
+| `requestNumber` | String | Human-readable request number (e.g., REG001-2026-00001) |
+| `status` | RequestStatus (Enum) | Current workflow state |
+| `applicantSnapshot` | ApplicantSnapshot (Entity) | Captured applicant data at submission |
+| `vesselSnapshot` | VesselSnapshot (Entity) | Captured vessel data at submission |
+| `documentsBundle` | DocumentsBundle (Entity) | Required and uploaded documents |
+| `approvalStatus` | ApprovalStatus (Entity) | External approval states (MAFWR, Inspection, Customs) |
+| `paymentRecord` | PaymentRecord (Entity) | Fee and payment information |
+| `certificateIssuance` | CertificateIssuance (Entity) | Issued certificate details |
+| `nameReservation` | NameReservation (VO) | Reserved vessel name |
+| `penalties` | List<PenaltyLineItem> (VO) | Applied penalties |
+| `createdAt` | DateTime | Request creation timestamp |
+| `updatedAt` | DateTime | Last update timestamp |
+| `submittedAt` | DateTime | Submission timestamp |
+| `issuedAt` | DateTime | Certificate issuance timestamp |
+
+**Invariants:**
+- A request cannot proceed to payment without complete documents
+- A request cannot be issued without successful payment
+- Fishing vessels require MAFWR approval before payment
+- Vessel name must be reserved before payment initiation
+
+---
+
+### 3.2 Vessel Profile Aggregate (Reference Data)
+
+**Aggregate Root:** `VesselProfile`
+
+Master vessel data that exists beyond the registration request lifecycle.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `vesselId` | VesselId (VO) | Unique vessel identifier |
+| `imoNumber` | String | IMO number (if applicable) |
+| `vesselName` | VesselName (VO) | Current vessel name |
+| `vesselCategory` | VesselCategory (Enum) | Vessel type classification |
+| `buildMaterial` | BuildMaterial (Enum) | Hull construction material |
+| `buildYear` | Year | Year of construction |
+| `constructionDates` | ConstructionPeriod (VO) | Start/end construction dates |
+| `dimensions` | VesselDimensions (VO) | Length, beam, draft, GT, NT |
+| `acquisitionPath` | AcquisitionPath (Enum) | NEW_BUILD, PURCHASE, FLAG_CHANGE |
+| `ownershipHistory` | List<OwnershipRecord> | Ownership chain |
+| `flagHistory` | List<FlagRecord> | Flag state history |
+| `activityType` | ActivityType (Enum) | Intended activity classification |
+| `registrationPort` | PortReference (VO) | Associated registration port (REG-001-SET-03) |
+| `homePort` | PortReference (VO) | Vessel home port |
+| `isProhibited` | Boolean | Whether vessel is on prohibited list |
+
+**Invariants:**
+- Vessel age must comply with policy limits based on material
+- IMO number format must be valid (if provided)
+- Dimensions must be positive values
+
+---
+
+### 3.3 Applicant Profile Aggregate (Reference Data)
+
+**Aggregate Root:** `ApplicantProfile`
+
+Master applicant data (individual or company) referenced by registration requests.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `applicantId` | ApplicantId (VO) | Unique applicant identifier |
+| `applicantType` | ApplicantType (Enum) | INDIVIDUAL or COMPANY |
+| `individualProfile` | IndividualProfile (Entity) | Personal details (if individual) |
+| `companyProfile` | CompanyProfile (Entity) | Company details (if company) |
+| `contactInfo` | ContactInfo (VO) | Email, phone, address |
+| `agents` | List<AgentRepresentation> (Entity) | Authorized agents (موكل من مالك السفينة) |
+| `nationality` | String | Applicant nationality (Omani citizen / resident) |
+| `isResident` | Boolean | Whether applicant is Omani resident |
+
+**Invariants:**
+- Applicant must be Omani citizen or resident (per DOCX conditions)
+- Company must have valid Commercial Registration (CR)
+- Company activity must be eligible for vessel type
+
+#### 3.3.1 IndividualProfile Entity
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `nationalId` | String | Civil ID number (رقم البطاقة الشخصية) |
+| `fullNameAr` | String | Full name in Arabic |
+| `fullNameEn` | String | Full name in English |
+| `dateOfBirth` | Date | Date of birth |
+| `nationalityType` | NationalityType (Enum) | OMANI_CITIZEN, OMANI_RESIDENT, GCC_CITIZEN |
+| `passportNumber` | String | Passport number (for residents) |
+| `residencyExpiryDate` | Date | Residency permit expiry (for residents) |
+| `ropVerificationStatus` | VerificationStatus (Enum) | Verified via ROP PKI |
+| `verifiedAt` | DateTime | When identity was verified |
+
+#### 3.3.2 CompanyProfile Entity
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `crNumber` | String | Commercial Registration number (سجل تجاري) |
+| `companyNameAr` | String | Company name in Arabic |
+| `companyNameEn` | String | Company name in English |
+| `crExpiryDate` | Date | CR expiry date |
+| `crStatus` | CRStatus (Enum) | ACTIVE, EXPIRED, SUSPENDED |
+| `activityCodes` | List<String> | Activity codes from Invest Easy |
+| `eligibleActivities` | List<String> | Activities eligible for vessel registration |
+| `investEasyVerificationStatus` | VerificationStatus (Enum) | Verified via Invest Easy |
+| `verifiedAt` | DateTime | When CR was verified |
+
+#### 3.3.3 AgentRepresentation Entity
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `agentId` | AgentId (VO) | Unique agent identifier |
+| `agentType` | AgentType (Enum) | POWER_OF_ATTORNEY, AUTHORIZED_REPRESENTATIVE |
+| `agentNationalId` | String | Agent's civil ID |
+| `agentName` | String | Agent's full name |
+| `authorizationDocument` | DocumentReference (VO) | Power of attorney document |
+| `authorizationValidFrom` | Date | Authorization start date |
+| `authorizationValidTo` | Date | Authorization end date |
+| `scope` | List<AuthorizationScope> | What actions agent can perform |
+
+---
+
+### 3.4 Invoice Aggregate
+
+**Aggregate Root:** `Invoice`
+
+Financial artifact for fee collection.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `invoiceId` | InvoiceId (VO) | Unique invoice identifier |
+| `invoiceNumber` | String | Human-readable invoice number |
+| `requestReference` | RequestId (VO) | Associated registration request |
+| `lineItems` | List<InvoiceLineItem> (Entity) | Fee and penalty line items |
+| `totalAmount` | Money (VO) | Total amount due |
+| `status` | InvoiceStatus (Enum) | DRAFT, ISSUED, PAID, CANCELLED |
+| `issuedAt` | DateTime | Invoice issuance timestamp |
+| `paidAt` | DateTime | Payment confirmation timestamp |
+| `paymentReference` | String | Payment gateway reference |
+
+**Invariants:**
+- Invoice cannot be modified after payment
+- Total must equal sum of line items
+
+---
+
+### 3.5 Certificate Aggregate
+
+**Aggregate Root:** `TemporaryCertificate`
+
+The issued temporary registration certificate.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `certificateId` | CertificateId (VO) | Unique certificate identifier |
+| `certificateNumber` | String | Official certificate number |
+| `requestReference` | RequestId (VO) | Associated registration request |
+| `vesselReference` | VesselId (VO) | Registered vessel |
+| `ownerReference` | ApplicantId (VO) | Certificate holder |
+| `issuedDate` | Date | Issuance date |
+| `expiryDate` | Date | Expiry date |
+| `validityPeriod` | Period (VO) | Validity duration (config-driven) |
+| `status` | CertificateStatus (Enum) | ACTIVE, EXPIRED, SUPERSEDED, CANCELLED |
+| `qrCode` | String | QR code data for verification |
+| `documentUrl` | String | PDF document URL |
+
+**Invariants:**
+- Expiry date must be after issuance date
+- Certificate status transitions follow defined rules
+
+---
+
+## 4. Entities (Within Aggregates)
+
+### 4.1 ApplicantSnapshot (within RegistrationRequest)
+
+Immutable copy of applicant data at request submission time.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `applicantReference` | ApplicantId (VO) | Reference to master applicant |
+| `applicantType` | ApplicantType (Enum) | INDIVIDUAL or COMPANY |
+| `displayName` | String | Full name or company name |
+| `nationalId` | String | National ID (individual) or CR (company) |
+| `contactEmail` | Email (VO) | Contact email |
+| `contactPhone` | PhoneNumber (VO) | Contact phone |
+| `capturedAt` | DateTime | Snapshot timestamp |
+
+---
+
+### 4.2 VesselSnapshot (within RegistrationRequest)
+
+Immutable copy of vessel data at request submission time.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `vesselReference` | VesselId (VO) | Reference to master vessel (if exists) |
+| `proposedName` | String | Proposed vessel name |
+| `vesselCategory` | VesselCategory (Enum) | Vessel type |
+| `buildYear` | Year | Construction year |
+| `buildMaterial` | BuildMaterial (Enum) | Hull material |
+| `grossTonnage` | Decimal | Gross tonnage (GT) |
+| `netTonnage` | Decimal | Net tonnage (NT) |
+| `length` | Decimal | Length overall (meters) |
+| `acquisitionPath` | AcquisitionPath (Enum) | How vessel was acquired |
+| `activityType` | ActivityType (Enum) | Intended activity |
+| `capturedAt` | DateTime | Snapshot timestamp |
+
+---
+
+### 4.3 DocumentsBundle (within RegistrationRequest)
+
+Collection of required and submitted documents.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `requiredDocuments` | List<RequiredDocument> | Documents required by policy |
+| `uploadedDocuments` | List<UploadedDocument> | Documents uploaded by applicant |
+| `completenessStatus` | CompletenessStatus (Enum) | INCOMPLETE, COMPLETE, VALIDATED |
+| `lastValidatedAt` | DateTime | Last validation timestamp |
+
+---
+
+### 4.4 ApprovalStatus (within RegistrationRequest)
+
+Tracks external approval states.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `mafwrApproval` | ExternalApproval (VO) | MAFWR fishing approval status |
+| `inspectionApproval` | ExternalApproval (VO) | Inspection outcome status |
+| `customsApproval` | ExternalApproval (VO) | Customs clearance status |
+
+---
+
+### 4.5 PaymentRecord (within RegistrationRequest)
+
+Payment tracking within the request.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `invoiceReference` | InvoiceId (VO) | Associated invoice |
+| `paymentStatus` | PaymentStatus (Enum) | PENDING, PROCESSING, COMPLETED, FAILED, EXPIRED |
+| `paymentMethod` | String | Payment method used |
+| `transactionReference` | String | Gateway transaction reference |
+| `paidAmount` | Money (VO) | Amount paid |
+| `paidAt` | DateTime | Payment timestamp |
+
+---
+
+### 4.6 CertificateIssuance (within RegistrationRequest)
+
+Certificate issuance tracking within the request.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `certificateReference` | CertificateId (VO) | Issued certificate reference |
+| `issuedAt` | DateTime | Issuance timestamp |
+| `issuedBy` | String | Issuing authority/system |
+| `deliveryChannel` | DeliveryChannel (Enum) | How certificate was delivered |
+
+---
+
+### 4.7 InvoiceLineItem (within Invoice)
+
+Individual fee or penalty line in an invoice.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `lineItemId` | UUID | Unique line item identifier |
+| `itemType` | LineItemType (Enum) | FEE, PENALTY, TAX, DISCOUNT |
+| `description` | String | Line item description |
+| `descriptionAr` | String | Arabic description |
+| `amount` | Money (VO) | Line item amount |
+| `ruleReference` | String | DMN rule or config reference |
+
+---
+
+## 5. Value Objects
+
+### 5.1 Identity Value Objects
+
+| Value Object | Properties | Description |
+|--------------|------------|-------------|
+| `RequestId` | value: UUID | Registration request identifier |
+| `VesselId` | value: UUID | Vessel identifier |
+| `ApplicantId` | value: UUID | Applicant identifier |
+| `InvoiceId` | value: UUID | Invoice identifier |
+| `CertificateId` | value: UUID | Certificate identifier |
+
+### 5.2 Domain Value Objects
+
+| Value Object | Properties | Description |
+|--------------|------------|-------------|
+| `VesselName` | name: String, reservedUntil: DateTime | Vessel name with reservation |
+| `VesselDimensions` | length: Decimal, beam: Decimal, draft: Decimal, grossTonnage: Decimal, netTonnage: Decimal | Vessel measurements |
+| `ConstructionPeriod` | startDate: Date, endDate: Date | Construction timeline |
+| `Money` | amount: Decimal, currency: Currency | Monetary value |
+| `Period` | startDate: Date, endDate: Date | Date range |
+| `Email` | value: String | Validated email address |
+| `PhoneNumber` | countryCode: String, number: String | Phone number |
+| `ContactInfo` | email: Email, phone: PhoneNumber, address: Address | Contact details |
+| `Address` | street: String, city: String, region: String, country: String, postalCode: String | Physical address |
+| `NameReservation` | proposedName: String, reservedAt: DateTime, expiresAt: DateTime, status: ReservationStatus | Name reservation details |
+| `PenaltyLineItem` | reason: String, ruleReference: String, amount: Money, appliedAt: DateTime | Applied penalty |
+| `ExternalApproval` | status: ApprovalOutcome, requestedAt: DateTime, respondedAt: DateTime, reference: String, reason: String | External approval tracking |
+
+---
+
+## 6. Enumerations
+
+### 6.1 Request Status
+
+```
+RequestStatus:
+  - DRAFT                  # Initial state, data entry in progress
+  - SUBMITTED              # Request submitted, validation pending
+  - DOCUMENTS_PENDING      # Waiting for document upload
+  - DOCUMENTS_COMPLETE     # Documents validated
+  - APPROVAL_PENDING       # Waiting for external approvals
+  - APPROVED               # All approvals received
+  - PAYMENT_PENDING        # Waiting for payment
+  - PAYMENT_PROCESSING     # Payment in progress
+  - PAID                   # Payment confirmed
+  - ISSUING                # Certificate generation in progress
+  - ISSUED                 # Certificate issued
+  - REJECTED               # Request rejected
+  - CANCELLED              # Request cancelled by applicant
+  - EXPIRED                # Request expired due to timeout
+```
+
+### 6.2 Vessel Category
+
+```
+VesselCategory:
+  - CARGO                  # سفن الشحن
+  - TANKER                 # ناقلات
+  - CONTAINER              # سفن الحاويات
+  - BULK_CARRIER           # ناقلات البضائع السائبة
+  - PASSENGER              # سفن الركاب
+  - FISHING                # سفن الصيد
+  - NAVAL                  # السفن البحرية
+  - RESEARCH               # سفن البحث العلمي
+  - TUGBOAT                # قاطرات
+  - OFFSHORE               # منصات بحرية
+  - YACHT                  # يخوت
+  - FERRY                  # عبّارات
+  - BOAT                   # قوارب
+  - OTHER                  # أخرى
+```
+
+### 6.3 Build Material
+
+```
+BuildMaterial:
+  - STEEL                  # فولاذ
+  - ALUMINUM               # ألومنيوم
+  - FIBERGLASS             # ألياف زجاجية
+  - WOOD                   # خشب
+  - COMPOSITE              # مركب
+  - OTHER                  # أخرى
+```
+
+### 6.4 Acquisition Path
+
+```
+AcquisitionPath:
+  - NEW_BUILD              # بناء جديد
+  - PURCHASE               # شراء
+  - FLAG_CHANGE            # تغيير العلم
+```
+
+### 6.5 Activity Type
+
+```
+ActivityType:
+  - COMMERCIAL             # تجاري
+  - FISHING                # صيد
+  - TOURISM                # سياحة
+  - SERVICE                # خدمات
+  - PRIVATE                # خاص
+  - OTHER                  # أخرى
+```
+
+### 6.6 Applicant Type
+
+```
+ApplicantType:
+  - INDIVIDUAL             # فرد
+  - COMPANY                # شركة
+```
+
+### 6.7 Nationality Type
+
+```
+NationalityType:
+  - OMANI_CITIZEN          # مواطن عماني
+  - OMANI_RESIDENT         # مقيم في عمان
+  - GCC_CITIZEN            # مواطن خليجي
+  - FOREIGN                # أجنبي
+```
+
+### 6.8 Approval Outcome
+
+```
+ApprovalOutcome:
+  - NOT_REQUIRED           # غير مطلوب
+  - PENDING                # قيد الانتظار
+  - APPROVED               # موافق عليه
+  - REJECTED               # مرفوض
+  - TIMEOUT                # انتهت المهلة
+```
+
+### 6.9 Verification Status
+
+```
+VerificationStatus:
+  - NOT_VERIFIED           # لم يتم التحقق
+  - PENDING                # قيد التحقق
+  - VERIFIED               # تم التحقق
+  - FAILED                 # فشل التحقق
+```
+
+### 6.10 CR Status (Commercial Registration)
+
+```
+CRStatus:
+  - ACTIVE                 # نشط
+  - EXPIRED                # منتهي
+  - SUSPENDED              # موقوف
+  - CANCELLED              # ملغى
+```
+
+### 6.11 Agent Type
+
+```
+AgentType:
+  - POWER_OF_ATTORNEY      # موكل بتوكيل
+  - AUTHORIZED_REPRESENTATIVE  # ممثل معتمد
+  - COMPANY_DELEGATE       # مفوض الشركة
+```
+
+### 6.12 Configuration Status
+
+```
+ConfigurationStatus:
+  - DRAFT                  # مسودة
+  - ACTIVE                 # نشط
+  - DEPRECATED             # ملغى
+  - ARCHIVED               # مؤرشف
+```
+
+---
+
+## 7. Domain Events
+
+Domain events capture significant state changes that other services/domains may react to.
+
+### 7.1 Registration Request Events
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `RegistrationRequestCreated` | New request initiated | requestId, applicantId, timestamp |
+| `RegistrationRequestSubmitted` | Request submitted | requestId, vesselData, applicantData |
+| `DocumentsCompleted` | All required documents uploaded | requestId, documentCount |
+| `ApprovalRequested` | External approval requested | requestId, approvalType, targetSystem |
+| `ApprovalReceived` | External approval response | requestId, approvalType, outcome, reason |
+| `PaymentInitiated` | Payment process started | requestId, invoiceId, amount |
+| `PaymentCompleted` | Payment confirmed | requestId, invoiceId, transactionRef |
+| `PaymentFailed` | Payment failed | requestId, invoiceId, reason |
+| `CertificateIssued` | Certificate generated | requestId, certificateId, expiryDate |
+| `RequestRejected` | Request rejected | requestId, reason, rejectedBy |
+| `RequestCancelled` | Request cancelled | requestId, reason |
+
+### 7.2 Vessel Events
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `VesselProfileCreated` | New vessel registered | vesselId, vesselName, category |
+| `VesselNameReserved` | Name reserved | vesselId, name, expiresAt |
+| `VesselNameReleased` | Name reservation released | vesselId, name, reason |
+| `VesselRegistered` | Vessel officially registered | vesselId, certificateId, registrationDate |
+
+### 7.3 Billing Events
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `InvoiceGenerated` | Invoice created | invoiceId, requestId, totalAmount |
+| `InvoicePaid` | Invoice paid | invoiceId, paymentRef, paidAt |
+| `PenaltyApplied` | Penalty added | requestId, penaltyType, amount, reason |
+
+### 7.4 Certificate Events
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `TemporaryCertificateIssued` | Certificate issued | certificateId, vesselId, expiryDate |
+| `CertificateExpiringSoon` | Expiry reminder | certificateId, expiryDate, daysRemaining |
+| `CertificateExpired` | Certificate expired | certificateId, expiredAt |
+
+---
+
+## 8. Conceptual Class Diagram (UML)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    REGISTRATION REQUEST AGGREGATE                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  ┌──────────────────────────────────┐                                                               │
+│  │    <<Aggregate Root>>            │                                                               │
+│  │    RegistrationRequest           │                                                               │
+│  ├──────────────────────────────────┤                                                               │
+│  │ + requestId: RequestId           │                                                               │
+│  │ + requestNumber: String          │                                                               │
+│  │ + status: RequestStatus          │                                                               │
+│  │ + nameReservation: NameReserv... │                                                               │
+│  │ + penalties: List<PenaltyLine..> │                                                               │
+│  │ + createdAt: DateTime            │                                                               │
+│  │ + submittedAt: DateTime          │                                                               │
+│  │ + issuedAt: DateTime             │                                                               │
+│  ├──────────────────────────────────┤                                                               │
+│  │ + submit()                       │                                                               │
+│  │ + validateDocuments()            │                                                               │
+│  │ + requestApproval(type)          │                                                               │
+│  │ + recordApproval(type, outcome)  │                                                               │
+│  │ + initiatePayment()              │                                                               │
+│  │ + confirmPayment(ref)            │                                                               │
+│  │ + issueCertificate()             │                                                               │
+│  │ + reject(reason)                 │                                                               │
+│  │ + cancel(reason)                 │                                                               │
+│  └───────────┬──────────────────────┘                                                               │
+│              │                                                                                       │
+│   ┌──────────┼──────────┬──────────────────┬──────────────────┬────────────────┐                    │
+│   │          │          │                  │                  │                │                    │
+│   ▼          ▼          ▼                  ▼                  ▼                ▼                    │
+│ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐      │
+│ │ <<Entity>>     │ │ <<Entity>>     │ │ <<Entity>>     │ │ <<Entity>>     │ │ <<Entity>>     │      │
+│ │ Applicant      │ │ Vessel         │ │ Documents      │ │ Approval       │ │ Payment        │      │
+│ │ Snapshot       │ │ Snapshot       │ │ Bundle         │ │ Status         │ │ Record         │      │
+│ ├────────────────┤ ├────────────────┤ ├────────────────┤ ├────────────────┤ ├────────────────┤      │
+│ │ applicantRef   │ │ vesselRef      │ │ required[]     │ │ mafwrApproval  │ │ invoiceRef     │      │
+│ │ applicantType  │ │ proposedName   │ │ uploaded[]     │ │ inspection     │ │ paymentStatus  │      │
+│ │ displayName    │ │ vesselCategory │ │ completeness   │ │ customs        │ │ transactionRef │      │
+│ │ nationalId     │ │ buildYear      │ │ lastValidated  │ │                │ │ paidAmount     │      │
+│ │ contactEmail   │ │ grossTonnage   │ │                │ │                │ │ paidAt         │      │
+│ │ contactPhone   │ │ length         │ │                │ │                │ │                │      │
+│ │ capturedAt     │ │ activityType   │ │                │ │                │ │                │      │
+│ └────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘      │
+│                                                                                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    SUPPORTING AGGREGATES                                             │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  ┌────────────────────┐      ┌────────────────────┐      ┌────────────────────┐                     │
+│  │ <<Aggregate Root>> │      │ <<Aggregate Root>> │      │ <<Aggregate Root>> │                     │
+│  │ VesselProfile      │      │ ApplicantProfile   │      │ Invoice            │                     │
+│  ├────────────────────┤      ├────────────────────┤      ├────────────────────┤                     │
+│  │ vesselId           │      │ applicantId        │      │ invoiceId          │                     │
+│  │ imoNumber          │      │ applicantType      │      │ invoiceNumber      │                     │
+│  │ vesselName         │      │ individualProfile  │      │ requestReference   │                     │
+│  │ vesselCategory     │      │ companyProfile     │      │ lineItems[]        │                     │
+│  │ buildMaterial      │      │ contactInfo        │      │ totalAmount        │                     │
+│  │ buildYear          │      │ agents[]           │      │ status             │                     │
+│  │ dimensions         │      │                    │      │ paymentReference   │                     │
+│  │ acquisitionPath    │      │                    │      │                    │                     │
+│  │ activityType       │      │                    │      │                    │                     │
+│  └────────────────────┘      └────────────────────┘      └────────────────────┘                     │
+│                                                                                                      │
+│  ┌────────────────────┐                                                                             │
+│  │ <<Aggregate Root>> │                                                                             │
+│  │ TemporaryCertif... │                                                                             │
+│  ├────────────────────┤                                                                             │
+│  │ certificateId      │                                                                             │
+│  │ certificateNumber  │                                                                             │
+│  │ requestReference   │                                                                             │
+│  │ vesselReference    │                                                                             │
+│  │ ownerReference     │                                                                             │
+│  │ issuedDate         │                                                                             │
+│  │ expiryDate         │                                                                             │
+│  │ validityPeriod     │                                                                             │
+│  │ status             │                                                                             │
+│  │ qrCode             │                                                                             │
+│  └────────────────────┘                                                                             │
+│                                                                                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 9. Configuration Aggregate
+
+The Configuration aggregate manages all configurable settings and policies referenced from the DOCX source.
+
+### 9.1 Configuration Aggregate Root
+
+```
+<<Aggregate Root>>
+ServiceConfiguration
+├── configurationId: ConfigurationId
+├── serviceCode: String (e.g., "REG-001")
+├── version: Integer
+├── effectiveFrom: Date
+├── effectiveTo: Date (nullable)
+├── masterDataSettings: List<MasterDataSetting>
+├── processConfigurations: List<ProcessConfiguration>
+├── status: ConfigurationStatus
+├── createdAt: DateTime
+├── updatedAt: DateTime
+└── createdBy: String
+```
+
+### 9.2 Master Data Settings (REG-001-SET-xx)
+
+| Setting Code | Description | Data Type | Reference |
+|--------------|-------------|-----------|-----------|
+| REG-001-SET-01 | نوع السفينة / الوحدة البحرية (Vessel Types) | Lookup Table | Vessel category dropdown |
+| REG-001-SET-02 | مادة البناء (Build Materials) | Lookup Table | Build material dropdown |
+| REG-001-SET-03 | الموانئ العمانية (Omani Ports) | Lookup Table | Registration/Home port dropdown |
+| REG-001-SET-04 | نوع الاستخدام (Activity Types) | Lookup Table | Activity type dropdown |
+| REG-001-SET-05 | الأنشطة التجارية المؤهلة (Eligible CR Activities) | Lookup Table | Company eligibility check |
+| REG-001-SET-06 | مصادر التملك (Acquisition Paths) | Lookup Table | How vessel was acquired |
+
+### 9.3 Process Configurations (REG-001-CONF-xx)
+
+| Config Code | Description | Data Type | Used By |
+|-------------|-------------|-----------|---------|
+| REG-001-CONF-01 | الحد الأقصى لعمر السفينة حسب مادة البناء | Decision Table | reg001-vessel-age-validation.dmn |
+| REG-001-CONF-02 | الحد الأعلى لحمولة سفينة الصيد | Threshold | MAFWR requirement check |
+| REG-001-CONF-03 | فترة صلاحية الشهادة المؤقتة | Duration (6 months) | Certificate validity |
+| REG-001-CONF-04 | مدة حجز الاسم | Duration (30 days) | Name reservation expiry |
+
+### 9.4 Configuration Entity: MasterDataSetting
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `settingId` | SettingId | Unique identifier |
+| `settingCode` | String | e.g., "REG-001-SET-01" |
+| `settingNameAr` | String | Arabic name |
+| `settingNameEn` | String | English name |
+| `values` | List<SettingValue> | Configured values |
+| `isActive` | Boolean | Active status |
+| `effectiveFrom` | Date | Start date |
+| `effectiveTo` | Date | End date (nullable) |
+
+### 9.5 Configuration Entity: ProcessConfiguration
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `configId` | ConfigId | Unique identifier |
+| `configCode` | String | e.g., "REG-001-CONF-01" |
+| `configNameAr` | String | Arabic name |
+| `configNameEn` | String | English name |
+| `value` | ConfigValue (VO) | Configured value (number, duration, threshold) |
+| `dmnReference` | String | Referenced DMN file (if applicable) |
+| `isActive` | Boolean | Active status |
+
+---
+
+## 10. Import Document Entity
+
+The ImportDocument entity represents the imported document from Bayan Customs system for vessels acquired via import.
+
+### 10.1 ImportDocument Entity Definition
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `importDocumentId` | ImportDocumentId (VO) | Unique identifier |
+| `bayanReference` | String | Reference number from Bayan system |
+| `importDeclarationNumber` | String | بيان الاستيراد number |
+| `importDate` | Date | Date of import |
+| `vesselDescription` | String | Description from Bayan |
+| `originCountry` | String | Country of origin |
+| `customsValue` | Money (VO) | Declared customs value |
+| `customsClearanceStatus` | ClearanceStatus | PENDING, CLEARED, REJECTED |
+| `documentFile` | DocumentReference (VO) | PDF document reference |
+| `fetchedAt` | DateTime | When retrieved from Bayan |
+| `verifiedAt` | DateTime | When verified (nullable) |
+
+### 10.2 ClearanceStatus Enumeration
+
+```
+ClearanceStatus:
+  - PENDING                # قيد الانتظار
+  - CLEARED                # تم التخليص
+  - REJECTED               # مرفوض
+  - NOT_APPLICABLE         # غير مطلوب
+```
+
+### 10.3 Integration with RegistrationRequest
+
+The ImportDocument is linked via the DocumentsBundle entity when acquisition path is PURCHASE (imported):
+
+```
+DocumentsBundle
+├── required: List<RequiredDocument>
+├── uploaded: List<UploadedDocument>
+├── importDocument: ImportDocument (nullable) ← Linked for imported vessels
+├── completeness: Percentage
+└── lastValidatedAt: DateTime
+```
+
+---
+
+## 11. Aggregate Boundaries & Rules
+
+### 11.1 Data Ownership
+
+| Aggregate | Owns | Does NOT Own |
+|-----------|------|--------------|
+| RegistrationRequest | Request lifecycle, snapshots, approvals, payment tracking | Master vessel data, master applicant data |
+| VesselProfile | Vessel master data, name, dimensions | Registration requests |
+| ApplicantProfile | Applicant master data, contact info | Registration requests |
+| Invoice | Fee line items, payment status | Request details |
+| TemporaryCertificate | Certificate metadata, validity | Registration process state |
+| ServiceConfiguration | Master data settings, process configurations | Runtime request data |
+
+### 11.2 Invariant Enforcement
+
+| Aggregate | Key Invariants |
+|-----------|----------------|
+| RegistrationRequest | Status transitions must follow defined workflow; documents must be complete before approval; payment must be confirmed before issuance |
+| VesselProfile | Age must comply with material-based limits; dimensions must be positive; port must be valid Omani port |
+| ApplicantProfile | Applicant must be Omani citizen/resident; Company must have valid CR; activity must be eligible |
+| Invoice | Line items must sum to total; cannot modify after payment |
+| TemporaryCertificate | Expiry must be after issuance; validity is 6 months (REG-001-CONF-03); status transitions are irreversible |
+| ServiceConfiguration | Settings must be versioned; only one active version per setting code |
+
+---
+
+## 12. Traceability
+
+### 12.1 Capability to Domain Mapping
+
+| Capability ID | Domain Concept | Aggregate |
+|---------------|----------------|-----------|
+| CAP-01 | Service initiation | RegistrationRequest |
+| CAP-03 | Applicant profiling | ApplicantProfile, ApplicantSnapshot, IndividualProfile, CompanyProfile |
+| CAP-06 | Vessel data capture | VesselProfile, VesselSnapshot |
+| CAP-07 | Vessel age validation | VesselProfile (policy-driven via REG-001-CONF-01) |
+| CAP-11 | Dynamic documents | DocumentsBundle, ImportDocument |
+| CAP-13 | MAFWR approval | ApprovalStatus |
+| CAP-15 | Inspection | ApprovalStatus |
+| CAP-17 | Customs clearance | ApprovalStatus, ImportDocument |
+| CAP-18 | Fee calculation | Invoice, InvoiceLineItem |
+| CAP-19 | Name reservation | NameReservation (VO), REG-001-CONF-04 |
+| CAP-21 | Payment processing | PaymentRecord, Invoice |
+| CAP-22 | Certificate issuance | TemporaryCertificate, CertificateIssuance |
+
+### 12.2 Configuration Traceability
+
+| Config Code | Domain Concept | Used By |
+|-------------|----------------|---------|
+| REG-001-SET-01 | VesselCategory Enum | Vessel type dropdown |
+| REG-001-SET-02 | BuildMaterial Enum | Build material dropdown |
+| REG-001-SET-03 | PortReference VO | Port selection |
+| REG-001-SET-04 | ActivityType Enum | Activity classification |
+| REG-001-SET-05 | CompanyProfile.eligibleActivities | CR eligibility check |
+| REG-001-SET-06 | AcquisitionPath Enum | Acquisition source |
+| REG-001-CONF-01 | VesselProfile age validation | reg001-vessel-age-validation.dmn |
+| REG-001-CONF-02 | MAFWR check threshold | reg001-mafwr-required.dmn |
+| REG-001-CONF-03 | TemporaryCertificate.validityPeriod | 6 months validity |
+| REG-001-CONF-04 | NameReservation.expiresAt | 30 days reservation |
+
+### 12.3 DMN Rule Mapping
+
+| DMN File | Domain Concept | Triggered By |
+|----------|----------------|--------------|
+| reg001-vessel-age-validation.dmn | VesselProfile | SP03 - Vessel data capture |
+| reg001-documents-required.dmn | DocumentsBundle.required | SP03 - Document determination |
+| reg001-fee-calculation.dmn | InvoiceLineItem | SP08 - Fee calculation |
+| reg001-penalty-calculation.dmn | PenaltyLineItem | SP08 - Penalty assessment |
+| reg001-mafwr-required.dmn | ApprovalStatus.mafwrApproval | SP05 - MAFWR check |
+| reg001-inspection-required.dmn | ApprovalStatus.inspectionApproval | SP06 - Inspection check |
+| reg001-customs-required.dmn | ApprovalStatus.customsApproval | SP07 - Customs check |
+
+---
+
+## 13. Related Documents
+
+- [02-Business_Domain_Context_Map](02-Business_Domain_Context_Map.md) – Bounded context relationships
+- [03-Context_Map_ACL_SharedKernel](03-Context_Map_ACL_SharedKernel.md) – Integration patterns
+- [01-Capability_to_Domain_Mapping](../../01-business-analysis/1.4-capabilities/02-Capability_to_Domain_Mapping/02-Capability_to_Domain_Mapping.md) – Source mapping
+- [BPMN Process Design](../../01-business-analysis/1.3-process/03-BPMN_Process_Design/00-BPMN_Index.md) – Process context
+- [Functional Requirements](../../01-business-analysis/1.5-functional-requirements/README.md) – FR source
+
+---
+
+**Document Control**
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | 2026-01-08 | Solution Architect | Initial domain model structure |
+| 1.1 | 2026-01-08 | Solution Architect | Added Configuration aggregate, ImportDocument entity, IndividualProfile, CompanyProfile, AgentRepresentation entities; Added NationalityType, VerificationStatus, CRStatus, AgentType, ConfigurationStatus enums; Enhanced traceability with Config and DMN mappings |
