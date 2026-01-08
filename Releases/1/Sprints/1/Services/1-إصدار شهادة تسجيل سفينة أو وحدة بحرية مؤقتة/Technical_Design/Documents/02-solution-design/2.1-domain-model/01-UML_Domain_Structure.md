@@ -232,6 +232,93 @@ The issued temporary registration certificate.
 
 ---
 
+### 3.6 Post-Issuance Monitoring Aggregate (From FR-SP10)
+
+**Aggregate Root:** `PostIssuanceMonitor`
+
+Tracks post-issuance reminders and penalties for permanent registration completion.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `monitorId` | MonitorId (VO) | Unique monitor identifier |
+| `certificateReference` | CertificateId (VO) | Associated temporary certificate |
+| `requestReference` | RequestId (VO) | Original registration request |
+| `monitoringState` | MonitoringState (Enum) | ACTIVE, PAUSED, CLOSED |
+| `startedAt` | DateTime | When monitoring started |
+| `closedAt` | DateTime | When monitoring closed (nullable) |
+| `closureReason` | String | Reason for closure |
+| `reminderSchedule` | ReminderSchedule (Entity) | Reminder configuration and state |
+| `appliedPenalties` | List<PenaltyRecord> (Entity) | Penalties applied for overdue |
+| `permanentRegistrationStatus` | CompletionStatus (Enum) | NOT_STARTED, IN_PROGRESS, COMPLETED |
+
+**Invariants:**
+- Monitoring must close when permanent registration is completed
+- Penalties can only be applied when overdue thresholds are exceeded
+
+#### 3.6.1 ReminderSchedule Entity
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `scheduleId` | ScheduleId (VO) | Unique schedule identifier |
+| `cadenceDays` | Integer | Reminder interval in days (REG-001-CONF-02) |
+| `lastReminderSentAt` | DateTime | Timestamp of last reminder |
+| `nextReminderDueAt` | DateTime | Next scheduled reminder |
+| `reminderCount` | Integer | Number of reminders sent |
+| `isActive` | Boolean | Whether reminders are active |
+
+#### 3.6.2 PenaltyRecord Entity
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `penaltyId` | PenaltyId (VO) | Unique penalty identifier |
+| `penaltyType` | PenaltyType (Enum) | OVERDUE, LATE_COMPLETION |
+| `amount` | Money (VO) | Penalty amount |
+| `appliedAt` | DateTime | When penalty was applied |
+| `daysOverdue` | Integer | Days past threshold |
+| `ruleReference` | String | DMN rule reference |
+| `invoiceReference` | InvoiceId (VO) | Associated invoice (nullable) |
+| `status` | PenaltyStatus (Enum) | PENDING, INVOICED, PAID, WAIVED |
+
+---
+
+### 3.7 Inspection Aggregate (From FR-SP06)
+
+**Aggregate Root:** `InspectionRequest`
+
+Manages vessel inspection requests and outcomes.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `inspectionId` | InspectionId (VO) | Unique inspection identifier |
+| `registrationRequestRef` | RequestId (VO) | Associated registration request |
+| `vesselReference` | VesselId (VO) | Vessel to inspect |
+| `inspectionType` | InspectionType (Enum) | INITIAL, SAFETY, CLASSIFICATION |
+| `requestedAt` | DateTime | When inspection was requested |
+| `scheduledAt` | DateTime | Scheduled inspection date/time |
+| `status` | InspectionStatus (Enum) | REQUESTED, SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED |
+| `outcome` | InspectionOutcome (Enum) | PASSED, FAILED, CANCELLED, TIMEOUT |
+| `inspectorReference` | String | External inspector reference |
+| `report` | InspectionReport (Entity) | Inspection report (nullable) |
+| `completedAt` | DateTime | When inspection completed |
+
+**Invariants:**
+- Outcome can only be set when status is COMPLETED
+- Report is required when outcome is PASSED or FAILED
+
+#### 3.7.1 InspectionReport Entity
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `reportId` | ReportId (VO) | Unique report identifier |
+| `reportNumber` | String | Official report number |
+| `issuedAt` | DateTime | Report issuance date |
+| `findings` | String | Inspection findings |
+| `recommendations` | String | Recommendations (if any) |
+| `documentReference` | DocumentReference (VO) | Uploaded report document |
+| `expiryDate` | Date | Report validity expiry |
+
+---
+
 ## 4. Entities (Within Aggregates)
 
 ### 4.1 ApplicantSnapshot (within RegistrationRequest)
@@ -512,6 +599,106 @@ ConfigurationStatus:
   - ARCHIVED               # مؤرشف
 ```
 
+### 6.13 Monitoring State (From FR-SP10)
+
+```
+MonitoringState:
+  - ACTIVE                 # نشط - مراقبة جارية
+  - PAUSED                 # موقف مؤقتاً
+  - CLOSED                 # مغلق - انتهت المراقبة
+```
+
+### 6.14 Completion Status (From FR-SP10)
+
+```
+CompletionStatus:
+  - NOT_STARTED            # لم يبدأ
+  - IN_PROGRESS            # قيد التنفيذ
+  - COMPLETED              # مكتمل
+```
+
+### 6.15 Penalty Type (From FR-SP10)
+
+```
+PenaltyType:
+  - OVERDUE                # تأخر في إتمام التسجيل الدائم
+  - LATE_COMPLETION        # إتمام متأخر
+  - CONSTRUCTION_DELAY     # تأخر في البناء (>30 يوم)
+```
+
+### 6.16 Penalty Status
+
+```
+PenaltyStatus:
+  - PENDING                # قيد الانتظار
+  - INVOICED               # تم إصدار الفاتورة
+  - PAID                   # مدفوع
+  - WAIVED                 # ملغى
+```
+
+### 6.17 Inspection Type (From FR-SP06)
+
+```
+InspectionType:
+  - INITIAL                # فحص أولي
+  - SAFETY                 # فحص السلامة
+  - CLASSIFICATION         # فحص التصنيف
+  - SEAWORTHINESS          # فحص صلاحية الإبحار
+```
+
+### 6.18 Inspection Status (From FR-SP06)
+
+```
+InspectionStatus:
+  - REQUESTED              # تم الطلب
+  - SCHEDULED              # مجدول
+  - IN_PROGRESS            # قيد التنفيذ
+  - COMPLETED              # مكتمل
+  - CANCELLED              # ملغى
+```
+
+### 6.19 Inspection Outcome (From FR-SP06)
+
+```
+InspectionOutcome:
+  - PASSED                 # ناجح
+  - FAILED                 # فاشل
+  - CANCELLED              # ملغى
+  - TIMEOUT                # انتهت المهلة
+```
+
+### 6.20 Certificate Status
+
+```
+CertificateStatus:
+  - ACTIVE                 # نشط
+  - EXPIRED                # منتهي الصلاحية
+  - SUPERSEDED             # تم استبداله
+  - CANCELLED              # ملغى
+  - SUSPENDED              # موقوف
+```
+
+### 6.21 Invoice Status (From FR-SP08)
+
+```
+InvoiceStatus:
+  - DRAFT                  # مسودة
+  - ISSUED                 # صادر
+  - PAID                   # مدفوع
+  - CANCELLED              # ملغى
+  - EXPIRED                # منتهي الصلاحية
+```
+
+### 6.22 Reservation Status (From FR-SP08)
+
+```
+ReservationStatus:
+  - RESERVED               # محجوز
+  - CONFIRMED              # مؤكد
+  - RELEASED               # محرر
+  - EXPIRED                # منتهي
+```
+
 ---
 
 ## 7. Domain Events
@@ -558,6 +745,35 @@ Domain events capture significant state changes that other services/domains may 
 | `TemporaryCertificateIssued` | Certificate issued | certificateId, vesselId, expiryDate |
 | `CertificateExpiringSoon` | Expiry reminder | certificateId, expiryDate, daysRemaining |
 | `CertificateExpired` | Certificate expired | certificateId, expiredAt |
+
+### 7.5 Inspection Events (From FR-SP06)
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `InspectionRequested` | Inspection request created | inspectionId, requestId, vesselId, inspectionType |
+| `InspectionScheduled` | Inspection scheduled | inspectionId, scheduledAt, inspectorRef |
+| `InspectionCompleted` | Inspection completed | inspectionId, outcome, reportRef |
+| `InspectionFailed` | Inspection failed | inspectionId, reason |
+| `InspectionCancelled` | Inspection cancelled | inspectionId, reason |
+
+### 7.6 Post-Issuance Monitoring Events (From FR-SP10)
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `MonitoringStarted` | Monitoring activated | monitorId, certificateId, startedAt |
+| `ReminderSent` | Reminder notification sent | monitorId, reminderCount, sentAt |
+| `OverdueThresholdReached` | Overdue threshold exceeded | monitorId, daysOverdue |
+| `OverduePenaltyApplied` | Penalty for overdue applied | monitorId, penaltyId, amount |
+| `PermanentRegistrationCompleted` | Permanent registration done | monitorId, certificateId, completedAt |
+| `MonitoringClosed` | Monitoring closed | monitorId, closureReason, closedAt |
+
+### 7.7 Customs Events (From FR-SP07)
+
+| Event | Trigger | Payload |
+|-------|---------|---------|
+| `CustomsClearanceRequested` | Request sent to Bayan | requestId, bayanReference |
+| `CustomsClearanceReceived` | Response from Bayan | requestId, clearanceStatus, documentRef |
+| `CustomsClearanceRejected` | Bayan rejected clearance | requestId, reason |
 
 ---
 
@@ -777,6 +993,8 @@ DocumentsBundle
 | Invoice | Fee line items, payment status | Request details |
 | TemporaryCertificate | Certificate metadata, validity | Registration process state |
 | ServiceConfiguration | Master data settings, process configurations | Runtime request data |
+| PostIssuanceMonitor | Monitoring lifecycle, reminders, overdue penalties | Certificate data, permanent registration |
+| InspectionRequest | Inspection lifecycle, reports, outcomes | Vessel data, registration request details |
 
 ### 11.2 Invariant Enforcement
 
@@ -798,17 +1016,30 @@ DocumentsBundle
 | Capability ID | Domain Concept | Aggregate |
 |---------------|----------------|-----------|
 | CAP-01 | Service initiation | RegistrationRequest |
+| CAP-02 | Applicant authentication | ApplicantProfile (ROP PKI verification) |
 | CAP-03 | Applicant profiling | ApplicantProfile, ApplicantSnapshot, IndividualProfile, CompanyProfile |
+| CAP-04 | CR validation | CompanyProfile (Invest Easy verification) |
+| CAP-05 | Activity eligibility | CompanyProfile.eligibleActivities |
 | CAP-06 | Vessel data capture | VesselProfile, VesselSnapshot |
 | CAP-07 | Vessel age validation | VesselProfile (policy-driven via REG-001-CONF-01) |
+| CAP-08 | Penalty trigger evaluation | PenaltyLineItem, PenaltyRecord |
+| CAP-10 | Prohibited vessel check | VesselProfile.isProhibited |
 | CAP-11 | Dynamic documents | DocumentsBundle, ImportDocument |
-| CAP-13 | MAFWR approval | ApprovalStatus |
-| CAP-15 | Inspection | ApprovalStatus |
-| CAP-17 | Customs clearance | ApprovalStatus, ImportDocument |
+| CAP-12 | Document upload/validation | DocumentsBundle, RequiredDocument, UploadedDocument |
+| CAP-13 | MAFWR approval | ApprovalStatus.mafwrApproval |
+| CAP-14 | Inspection determination | InspectionRequest (DMN-driven) |
+| CAP-15 | Inspection workflow | InspectionRequest, InspectionReport |
+| CAP-16 | Customs determination | ApprovalStatus.customsApproval (DMN-driven) |
+| CAP-17 | Customs clearance | ApprovalStatus.customsApproval, ImportDocument |
 | CAP-18 | Fee calculation | Invoice, InvoiceLineItem |
 | CAP-19 | Name reservation | NameReservation (VO), REG-001-CONF-04 |
+| CAP-20 | Invoice generation | Invoice, InvoiceLineItem |
 | CAP-21 | Payment processing | PaymentRecord, Invoice |
 | CAP-22 | Certificate issuance | TemporaryCertificate, CertificateIssuance |
+| CAP-23 | Notifications | (Cross-cutting - NotificationService) |
+| CAP-24 | Post-issuance reminders | PostIssuanceMonitor, ReminderSchedule |
+| CAP-25 | Overdue penalties | PostIssuanceMonitor, PenaltyRecord |
+| CAP-26 | Audit trail | (Cross-cutting - AuditService) |
 
 ### 12.2 Configuration Traceability
 
@@ -855,3 +1086,4 @@ DocumentsBundle
 |---------|------|--------|---------|
 | 1.0 | 2026-01-08 | Solution Architect | Initial domain model structure |
 | 1.1 | 2026-01-08 | Solution Architect | Added Configuration aggregate, ImportDocument entity, IndividualProfile, CompanyProfile, AgentRepresentation entities; Added NationalityType, VerificationStatus, CRStatus, AgentType, ConfigurationStatus enums; Enhanced traceability with Config and DMN mappings |
+| 1.2 | 2026-01-08 | Solution Architect | FR-driven updates: Added PostIssuanceMonitor aggregate (FR-SP10), InspectionRequest aggregate (FR-SP06), ReminderSchedule, PenaltyRecord, InspectionReport entities; Added 10 new enumerations (MonitoringState, InspectionStatus, InspectionOutcome, etc.); Added 15+ new domain events; Expanded capability mapping to 26 capabilities |
