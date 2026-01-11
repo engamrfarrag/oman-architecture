@@ -381,7 +381,200 @@ submitRequest(command: SubmitRegistrationCommand): Result
 
 ---
 
-## 14. Prompt Patterns
+## 14. Policy Service & Master Data Separation Pattern
+
+**CRITICAL:** When designing services in `02-solution-design/`, apply these architectural patterns for decision logic and reference data separation.
+
+### 14.1 Core Principle
+
+> **Separate decision logic (Policy) from reference data (Master Data) from process orchestration (Domain Services).**
+
+### 14.2 Three-Tier Decision Architecture
+
+```text
+┌──────────────────────────┐
+│   Domain/Process Service │  ← Orchestration ONLY
+│   (e.g., Registration)   │
+└─────────┬────────────────┘
+          │ calls (never owns rules)
+          ▼
+┌──────────────────────────┐
+│   Policy Microservice    │  ← Decision Logic
+│   - DMN Engine           │
+│   - Rule Evaluation APIs │
+│   - Configurable Policies│
+└─────────┬────────────────┘
+          │ reads (lookup only)
+          ▼
+┌──────────────────────────┐
+│ Master Data Microservice │  ← Reference Data
+│   - Lookups & Codes      │
+│   - Static Reference     │
+└──────────────────────────┘
+```
+
+### 14.3 Service Responsibility Boundaries
+
+| Service Type | Owns | Does NOT Own |
+|--------------|------|--------------|
+| **Policy Service** | DMN files, rule evaluation, configurable thresholds, policy versioning | Master data, process orchestration, external integrations |
+| **Master Data Service** | Reference codes, lookup tables, static categories | Decision logic, business rules, policies |
+| **Domain/Process Service** | Workflow orchestration, state transitions, domain aggregates | Fee calculation, validation rules, eligibility decisions |
+
+### 14.4 DMN Ownership Rules
+
+#### Single Responsibility per DMN
+
+- Each DMN file = One decision type
+- **DO NOT** combine multiple concerns in one DMN
+
+| Decision Type | Separate DMN File |
+|---------------|-------------------|
+| Fee calculation | `{service_code}-fee-calculation.dmn` |
+| Document requirements | `{service_code}-documents-required.dmn` |
+| Eligibility/validation | `{service_code}-{entity}-validation.dmn` |
+| Inspection required | `{service_code}-inspection-required.dmn` |
+| Penalty calculation | `{service_code}-penalty-calculation.dmn` |
+| External approval required | `{service_code}-{external}-required.dmn` |
+
+#### Explicit Inputs Rule
+
+❌ Never pass complex objects:
+```text
+input: vessel
+```
+
+✅ Always use explicit primitive fields:
+```text
+vesselCategory, grossTonnage, length, buildYear, activityType
+```
+
+### 14.5 Configuration vs Decision Logic
+
+| Content Type | Where It Lives | Change Frequency |
+|--------------|----------------|------------------|
+| Decision formulas | DMN | Rarely |
+| Thresholds & limits | Config | Periodically |
+| Timing rules | Config | Periodically |
+| Feature flags | Config | Frequently |
+
+**Rule:** DMN reads configuration at runtime. Config changes do NOT require DMN redeployment.
+
+### 14.6 DMN Versioning Principles
+
+1. **DMN files are externalized** – Not embedded in service code
+2. **Version independently** – `{decision}_v{major}.{minor}.dmn`
+3. **No recompile for rule changes** – Load from database, storage, or volume
+4. **Runtime selection** – Use `decisionKey` + `versionTag`
+
+| Change Type | Required Action |
+|-------------|-----------------|
+| Business rule logic | Deploy new DMN version |
+| Threshold/config | Update config store only |
+| Service code | Redeploy service |
+
+### 14.7 Domain Service Interaction Pattern
+
+**Domain/Process services MUST:**
+- Call Policy service for all decisions
+- Treat policy responses as **authoritative**
+- Never implement decision logic locally
+
+**Domain/Process services MUST NOT:**
+- Calculate fees
+- Validate eligibility
+- Determine required documents
+- Duplicate any DMN logic
+
+### 14.8 Golden Rules (Enforce in All Designs)
+
+| # | Rule | Violation Example |
+|---|------|-------------------|
+| 1 | **No DMN duplication** | Same fee logic in two services |
+| 2 | **No policy logic in domain services** | Registration service calculates fees |
+| 3 | **No master data in policy service** | Policy service stores vessel categories |
+| 4 | **DMN changes ≠ service redeploy** | DMN embedded in JAR/DLL |
+| 5 | **Config drives behavior, DMN drives decisions** | Hardcoded thresholds in DMN |
+
+### 14.9 When to Apply This Pattern
+
+Apply Policy/MasterData separation when the service has:
+
+- [ ] Fee or payment calculations
+- [ ] Configurable validation rules
+- [ ] Document/requirement determination
+- [ ] Eligibility or approval logic
+- [ ] Penalty or fine calculations
+- [ ] External system routing decisions
+
+### 14.10 Design Checklist for 02-solution-design
+
+When generating service designs, verify:
+
+- [ ] Policy decisions are NOT in domain service
+- [ ] DMN files follow single-responsibility
+- [ ] Master data is separate from policy service
+- [ ] Domain service calls policy service for decisions
+- [ ] Configuration is separate from decision logic
+- [ ] DMN versioning strategy is documented
+
+---
+
+## 15. Security Architecture (Cross-Cutting)
+
+**CRITICAL:** Security is a cross-cutting concern that spans all services. For detailed security rules, see [SA-Security-instructions.md](SA-Security-instructions.md).
+
+### 15.1 Two-Layer Authorization Model
+
+> **RBAC determines where a user may enter the system.**  
+> **ABAC determines what the user may do with a resource.**
+
+| Layer | Purpose | Enforced At |
+|-------|---------|-------------|
+| **RBAC** | API access control | API Gateway |
+| **ABAC** | Resource authorization | Policy Engine (OPA) |
+
+### 15.2 RBAC Role Naming Convention
+
+```text
+{SERVICE_CODE}_{CAPABILITY}
+```
+
+**Examples:** `REG_CREATE_REQUEST`, `BILL_CONFIRM_PAYMENT`, `INSP_UPDATE_RESULT`
+
+### 15.3 ABAC Ownership Pattern
+
+```text
+A resource may be owned by:
+- An individual identity
+- An organization or legal entity
+
+Access is allowed ONLY if the subject has valid authority over the owning entity.
+```
+
+### 15.4 Security Non-Goals (MANDATORY)
+
+| ❌ Non-Goal | Reason |
+|------------|--------|
+| RBAC does NOT authorize resource ownership | RBAC is for API access only |
+| ABAC does NOT control API exposure | ABAC is for resources only |
+| BPMN contains NO authorization logic | Process orchestration only |
+| DMN contains NO authorization logic | Decision logic only |
+| Domain services do NOT make access decisions | Separation of concerns |
+
+### 15.5 Output Location
+
+```text
+02-solution-design/2.4-cross-cutting/01-Security_Trust_Architecture.md
+```
+
+### 15.6 Related Instruction File
+
+**For complete security rules:** [SA-Security-instructions.md](SA-Security-instructions.md)
+
+---
+
+## 16. Prompt Patterns
 
 **Recognized Prompts:**
 - "As an Architect, generate C4 Architecture for {service_name}"
@@ -389,10 +582,12 @@ submitRequest(command: SubmitRegistrationCommand): Result
 - "As a Solution Architect, create internal design for {service_name}"
 - "Generate API contracts for {service_name}"
 - "Design event schemas for {service_code}"
+- "Generate security architecture for {service_code}"
+- "Design authorization model for {service_name}"
 
 ---
 
-## 15. Dependencies from BA Phase
+## 17. Dependencies from BA Phase
 
 Before generating Solution Design, verify:
 1. ✅ Scope and Stakeholders documented
@@ -409,7 +604,7 @@ Before generating Solution Design, verify:
 
 ---
 
-## 16. Related Instruction Files
+## 18. Related Instruction Files
 
 ### SA Sub-Instructions (Detailed)
 
@@ -419,6 +614,7 @@ Before generating Solution Design, verify:
 | [SA-ServiceNaming-instructions.md](SA-ServiceNaming-instructions.md) | Service Naming Standards |
 | [SA-ServiceInternalDesign-instructions.md](SA-ServiceInternalDesign-instructions.md) | Internal Design Layers (DDD) |
 | [SA-UIInteraction-instructions.md](SA-UIInteraction-instructions.md) | Angular + BFF Pattern |
+| [SA-Security-instructions.md](SA-Security-instructions.md) | Security, RBAC, ABAC, Authorization |
 
 ### BA Phase Inputs
 
@@ -430,7 +626,7 @@ Before generating Solution Design, verify:
 
 ---
 
-## 17. SA Instruction File Hierarchy
+## 19. SA Instruction File Hierarchy
 
 ```text
 SA-instructions.md (Main)
@@ -444,11 +640,14 @@ SA-instructions.md (Main)
 ├── SA-ServiceInternalDesign-instructions.md
 │   └── DDD Layers, Clean Architecture
 │
-└── SA-UIInteraction-instructions.md
-    └── Angular, BFF, UI Abstraction
+├── SA-UIInteraction-instructions.md
+│   └── Angular, BFF, UI Abstraction
+│
+└── SA-Security-instructions.md
+    └── Security, RBAC, ABAC, Authorization
 ```
 
 ---
 
-**Last Updated:** 2026-01-07  
+**Last Updated:** 2026-01-09  
 **Applies To:** All Solution Architecture tasks in the BA workspace

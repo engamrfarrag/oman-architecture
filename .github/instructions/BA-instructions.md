@@ -201,7 +201,67 @@ Capability Mapping
 
 ---
 
-## 8. Quality Checklist for BA Documents
+## 8. Security & Access Control Rules (BA Perspective)
+
+When extracting security rules from DOCX source documents, BA MUST document in **business language only**.
+
+### 8.1 What BA MUST Document
+
+| Security Concept | Business Language Example |
+|------------------|---------------------------|
+| **Authentication** | "The service requires verified identity through official government authentication." |
+| **API Access** | "Access to service functions is restricted to authorized organizational units." |
+| **Resource Ownership** | "Actions on a resource are permitted only to its rightful owner or authorized representative." |
+| **Delegation** | "A representative may act on behalf of the owner with valid legal authorization." |
+
+### 8.2 Arabic Security Terms to Extract
+
+When reading DOCX, extract and interpret:
+
+| Arabic Term | English | Security Interpretation |
+|-------------|---------|------------------------|
+| مالك | Owner | Resource owner (individual or org) |
+| موكل | Authorized Representative | Legal delegation holder |
+| وكالة | Power of Attorney | Delegation document |
+| جهة | Organization/Entity | Organizational role |
+| موظف | Employee | API access role |
+| سجل تجاري | Commercial Registry | Legal entity identifier |
+| هوية | Identity | Subject identifier |
+| صلاحية | Permission | Capability/Role |
+| تفويض | Delegation | Authorized representation |
+
+### 8.3 Ownership Types
+
+BA MUST identify and document:
+
+| Ownership Type | Description |
+|----------------|-------------|
+| **Individual** | Resource owned by a person |
+| **Organizational** | Resource owned by a legal entity |
+| **Delegated** | User authorized to act on behalf of owner |
+
+### 8.4 BA Security Rules
+
+**BA MUST:**
+- Describe actors and their authority in business terms
+- Document ownership and delegation patterns
+- Specify eligibility to act on resources
+- Identify organizational access restrictions
+
+**BA MUST NOT:**
+- Mention RBAC, ABAC, OPA by name
+- Reference technical enforcement mechanisms (API Gateway, tokens)
+- Define claims or API configurations
+
+### 8.5 Output Location
+
+```text
+01-business-analysis/1.5-functional-requirements/04-cross-cutting/FR-CC-Security.md
+```
+
+---
+
+## 9. Quality Checklist for BA Documents
 
 Before handoff to FR/SA:
 
@@ -211,24 +271,28 @@ Before handoff to FR/SA:
 - [ ] BPMN diagrams match subprocess documentation
 - [ ] Traceability is complete (SP → CAP → G → DMN)
 - [ ] Bilingual content is consistent (if applicable)
+- [ ] Security actors and ownership extracted from DOCX
+- [ ] Access rules documented in business language
 
 ---
 
-## 9. Related Instruction Files
+## 10. Related Instruction Files
 
 - [FR-instructions.md](FR-instructions.md) – Functional Requirements generation
 - [Process-instructions.md](Process-instructions.md) – Detailed process design
 - [SA-instructions.md](SA-instructions.md) – Solution Architecture handoff
+- [SA-Security-instructions.md](SA-Security-instructions.md) – Security & Authorization (detailed)
 
 ---
 
-## 10. Prompt Patterns for BA Role
+## 11. Prompt Patterns for BA Role
 
 **Recognized Prompts:**
 - "As a BA, generate the scope for {service_name}"
 - "As a Business Analyst, create service blueprint for {service_code}"
 - "As a BA, document subprocess SP{XX} for {service_name}"
 - "As a BA, map capabilities for {service_code}"
+- "As a BA, extract security rules for {service_code}"
 
 ---
 

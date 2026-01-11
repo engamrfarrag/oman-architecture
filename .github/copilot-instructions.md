@@ -209,6 +209,7 @@ Any prompt following this pattern should trigger the documentation generation wo
 | **API Contracts** | `02-solution-design/2.3-services/03-API_Contracts/` | C4 Architecture, Services |
 | **Event Schemas** | `02-solution-design/2.3-services/04-Event_Schemas` | Architecture, Services |
 | **Data Architecture** | `02-solution-design/2.5-data-architecture/` | Domain Model, Services |
+| **Security Architecture** | `02-solution-design/2.4-cross-cutting/` | DOCX, Functional Requirements |
 | **Testing Strategy** | `03-delivery/3.5-quality-assurance/` | Functional Requirements, Services |
 | **DevOps Pipeline** | `04-devops-deployment/` | All previous phases |
 
@@ -247,6 +248,8 @@ Any prompt following this pattern should trigger the documentation generation wo
    - Integration points
    - Data elements and fields
    - Actors and roles
+   - **Security-related terms** (ownership, delegation, authorization)
+   - **Arabic security terms** (مالك, موكل, وكالة, جهة, موظف, تفويض)
 
 7. **Keep the converted content in working context** for all subsequent steps
 
@@ -553,6 +556,7 @@ This project uses **role-specific instruction files** to provide targeted guidan
 | [SA-ServiceNaming-instructions.md](instructions/SA-ServiceNaming-instructions.md) | Service Naming Standards, Categories |
 | [SA-ServiceInternalDesign-instructions.md](instructions/SA-ServiceInternalDesign-instructions.md) | DDD Layers, Clean Architecture |
 | [SA-UIInteraction-instructions.md](instructions/SA-UIInteraction-instructions.md) | Angular + BFF Pattern, UI Abstraction |
+| [SA-Security-instructions.md](instructions/SA-Security-instructions.md) | Security, RBAC, ABAC, Authorization |
 
 ### Instruction File Rules
 
@@ -576,6 +580,8 @@ This project uses **role-specific instruction files** to provide targeted guidan
 | "Generate service design ..." | SA-ServiceInternalDesign-instructions.md | SA-instructions.md |
 | "Design Flowable ..." | SA-Flowable-instructions.md | SA-instructions.md |
 | "Generate UI interaction ..." | SA-UIInteraction-instructions.md | SA-instructions.md |
+| "Generate security ..." | SA-Security-instructions.md | SA-instructions.md |
+| "Design authorization ..." | SA-Security-instructions.md | SA-instructions.md, BA-instructions.md |
 
 ### Documentation Flow by Role
 
@@ -601,5 +607,5 @@ This project uses **role-specific instruction files** to provide targeted guidan
 
 ---
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-01-09
 **Applies To:** All services in the BA workspace

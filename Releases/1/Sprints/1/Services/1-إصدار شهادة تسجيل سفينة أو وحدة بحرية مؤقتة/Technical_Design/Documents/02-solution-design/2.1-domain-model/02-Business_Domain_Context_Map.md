@@ -37,13 +37,13 @@ Domains that **support** the core domain but are not differentiating.
 | Domain | Description | Rationale |
 |--------|-------------|-----------|
 | **D04 – Vessel / Marine Unit** | Master vessel data and attributes | Essential data for registration |
-| **D05 – Policy & Compliance** | Business rules, DMN decisions, thresholds | Enables configurable business logic |
+| **D05 – Policy & Decision** | DMN rule evaluation, decision APIs, policy configurations (CONF-xx) | Centralized decision logic + config |
 | **D06 – Documents & Records** | Document requirements and management | Supports compliance requirements |
 | **D07 – External Approvals** | MAFWR and other authority approvals | Conditional process gates |
 | **D08 – Inspection** | Vessel inspection orchestration | Quality and safety assurance |
-| **D10 – Billing, Fees & Payments** | Fee calculation, invoicing, payments | Revenue collection |
+| **D10 – Billing & Payments** | Invoicing, payment processing (fee CALCULATION is in Policy) | Revenue collection |
 | **D12 – Monitoring & Enforcement** | Post-issuance reminders and penalties | Compliance enforcement |
-| **D14 – Configuration & Settings** | Master data settings (SET-01 to SET-06) and process configurations (CONF-01 to CONF-04) | Enables configurable service behavior |
+| **D15 – Master Data** | Static lookup tables (SET-xx), reference codes, categories | Reference data for all services |
 
 ### 2.3 Generic Domains
 
@@ -85,10 +85,10 @@ Domains that are **commoditized** and can be replaced with off-the-shelf solutio
 │   └────────────────────┘  └────────────────────┘  └────────────────────┘  └────────────────────┘    │
 │                                                                                                      │
 │   ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐    │
-│   │  APPROVAL CONTEXT  │  │ INSPECTION CONTEXT │  │  BILLING CONTEXT   │  │ MONITORING CONTEXT │    │
+│   │ MAFWR-APPROVAL CTX │  │ INSPECTION CONTEXT │  │  BILLING CONTEXT   │  │ MONITORING CONTEXT │    │
 │   │                    │  │                    │  │                    │  │                    │    │
 │   │ Owns: MAFWR flow,  │  │ Owns: Inspection   │  │ Owns: Fees,        │  │ Owns: Reminders,   │    │
-│   │ approval states    │  │ requests, results  │  │ invoices, payments │  │ deadlines, overdue │    │
+│   │ fishing approval   │  │ requests, results  │  │ invoices, payments │  │ deadlines, overdue │    │
 │   └────────────────────┘  └────────────────────┘  └────────────────────┘  └────────────────────┘    │
 │                                                                                                      │
 │   ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐    │
@@ -116,17 +116,98 @@ Domains that are **commoditized** and can be replaced with off-the-shelf solutio
 | **BC-REG** | Temporary Registration | D01 | Request lifecycle, state management, certificate issuance | Request, Submission, Approval, Issuance, Certificate |
 | **BC-VESSEL** | Vessel Management | D04 | Vessel master data, attributes, name reservation | Vessel, Unit, Name, Category, Dimensions |
 | **BC-APPLICANT** | Applicant Management | D02 | Applicant profiles, individual/company, agents | Applicant, Owner, Agent, Profile |
-| **BC-POLICY** | Policy & Rules | D05 | DMN decisions, thresholds, configurable rules | Policy, Rule, Threshold, Validation |
+| **BC-REGISTRATION-POLICY** | Registration Policy | D05, D14 | DMN rule evaluation, decision APIs, policy configurations (CONF-xx), policy versioning | Policy, Rule, Decision, Config, Threshold |
+| **BC-MASTERDATA** | Master Data | D15 | Reference codes (SET-xx), lookup tables, static categories | Code, Lookup, Category, Reference |
 | **BC-DOCS** | Document Management | D06 | Document requirements, upload, completeness | Document, Requirement, Upload, Attachment |
-| **BC-APPROVAL** | External Approvals | D07 | MAFWR approval workflow, external authority routing | Approval, Request, Response, Decision |
+| **BC-MAFWR-APPROVAL** | MAFWR External Approvals | D07 | MAFWR approval workflow for fishing vessels | Approval, Request, Response, Decision |
 | **BC-INSPECT** | Inspection | D08 | Inspection requests, scheduling, results | Inspection, Report, Classification, Result |
-| **BC-BILLING** | Billing & Payments | D10 | Fee calculation, invoicing, payment processing | Fee, Invoice, Payment, Penalty |
+| **BC-BILLING** | Billing & Payments | D10 | Fee invoicing, payment processing (NOT fee calculation) | Invoice, Payment, Receipt |
 | **BC-MONITOR** | Monitoring & Enforcement | D12 | Reminders, deadlines, overdue detection | Reminder, Deadline, Overdue, Enforcement |
 | **BC-IDENTITY** | Identity & Access | D02 | Authentication, PKI, authorization | Identity, Session, Authentication, Authorization |
 | **BC-ELIGIBLE** | Eligibility | D03 | CR validation, activity eligibility | CR, Activity, Eligibility, Validation |
 | **BC-CUSTOMS** | Customs Integration | D09 | Bayan customs clearance | Clearance, Import, Declaration |
 | **BC-NOTIFY** | Notifications | D11 | Multi-channel notifications | Notification, Channel, Template, Delivery |
 | **BC-AUDIT** | Audit & Governance | D13 | Audit trail, decision logging | Audit, Trail, Log, Compliance |
+
+### 3.3 Policy & Configuration Architecture (Two-Tier)
+
+Based on analysis of the source DOCX (إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة.docx), the architecture uses a **two-tier** model instead of three-tier:
+
+**Rationale for merging BC-POLICY + BC-CONFIG → BC-REGISTRATION-POLICY:**
+- CONF-xx codes are **inputs to DMN rules**, not separate decisions
+- Only 4 configurations (CONF-01 to CONF-04) — doesn't justify a separate service
+- DOCX treats them as "إعدادات الدورة" (process settings), part of policy context
+- Simpler architecture with fewer inter-service calls
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     POLICY & CONFIGURATION ARCHITECTURE (TWO-TIER)                       │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│   ┌──────────────────────────────────────────────────────────────────────────────────┐  │
+│   │                     DOMAIN / PROCESS SERVICES                                     │  │
+│   │   (BC-REG, BC-BILLING, BC-VESSEL, BC-INSPECT, BC-MONITOR)                        │  │
+│   │                                                                                   │  │
+│   │   Responsibility: Orchestration ONLY                                             │  │
+│   │   - Workflow state management                                                     │  │
+│   │   - Domain aggregates                                                             │  │
+│   │   - NEVER calculates fees, validates rules, or determines requirements           │  │
+│   │                                                                                   │  │
+│   └───────────────────────────────────────────────────────────────────────────────────┘  │
+│                                       │ calls (never owns rules)                        │
+│                                       ▼                                                  │
+│   ┌──────────────────────────────────────────────────────────────────────────────────┐  │
+│   │               BC-REGISTRATION-POLICY (Decision + Configuration)                   │  │
+│   │                                                                                   │  │
+│   │   Responsibility: Decision Logic + Configurable Inputs                           │  │
+│   │                                                                                   │  │
+│   │   DECISIONS (DMN):                          CONFIGURATIONS (CONF-xx):            │  │
+│   │   - reg001-fee-calculation.dmn              - CONF-01: Document Rules            │  │
+│   │   - reg001-vessel-age-validation.dmn        - CONF-02: Penalty Timing (30 days)  │  │
+│   │   - reg001-documents-required.dmn           - CONF-03: Validity Period (6 mo)    │  │
+│   │   - reg001-inspection-required.dmn          - CONF-04: Prohibited Vessels List   │  │
+│   │   - reg001-mafwr-required.dmn                                                     │  │
+│   │   - reg001-customs-required.dmn                                                   │  │
+│   │   - reg001-penalty-calculation.dmn                                                │  │
+│   │                                                                                   │  │
+│   │   Config is loaded INTERNALLY (not via separate service call)                    │  │
+│   │                                                                                   │  │
+│   └───────────────────────────────────┬──────────────────────────────────────────────┘  │
+│                                       │ reads (lookup only)                              │
+│                                       ▼                                                  │
+│   ┌──────────────────────────────────────────────────────────────────────────────────┐  │
+│   │                    BC-MASTERDATA (Reference Data Service)                         │  │
+│   │                                                                                   │  │
+│   │   Owns: Lookup Tables (SET-xx)              Used By:                              │  │
+│   │   - SET-01: Vessel Types                    - Dropdowns in UI                     │  │
+│   │   - SET-02: Build Materials                 - Policy DMN inputs                   │  │
+│   │   - SET-03: Omani Ports                     - Domain entity lookups               │  │
+│   │   - SET-04: Activity Types                                                        │  │
+│   │   - SET-05: Eligible CR Activities          DOES NOT own: Decision logic          │  │
+│   │   - SET-06: Acquisition Paths                                                     │  │
+│   │                                                                                   │  │
+│   └──────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.4 Service Responsibility Boundaries
+
+| Service | Owns | Does NOT Own |
+|---------|------|--------------|
+| **BC-REGISTRATION-POLICY** | DMN files, rule evaluation APIs, policy configurations (CONF-xx), decision versioning | Master data, process orchestration |
+| **BC-MASTERDATA** | Reference codes (SET-xx), lookup tables, static categories | Decision logic, business rules, policies |
+| **BC-REG, BC-BILLING, etc.** | Workflow orchestration, state transitions, domain aggregates | Fee calculation, validation rules, eligibility decisions |
+
+### 3.5 Golden Rules (Enforce in All Services)
+
+| # | Rule | Violation Example |
+|---|------|-------------------|
+| 1 | **No DMN duplication** | Same fee logic in two services |
+| 2 | **No policy logic in domain services** | Registration service calculates fees |
+| 3 | **No master data in policy service** | Policy service stores vessel categories |
+| 4 | **DMN changes ≠ service redeploy** | DMN embedded in JAR/DLL |
+| 5 | **Config is part of policy context** | Separate config service for 4 settings |
 
 ---
 
@@ -227,7 +308,7 @@ ACL = Anti-Corruption Layer
 | BC-POLICY | BC-DOCS | Customer-Supplier | Conformist |
 | BC-POLICY | BC-BILLING | Customer-Supplier | Conformist |
 | BC-DOCS | BC-REG | Customer-Supplier | Conformist |
-| BC-APPROVAL | BC-REG | Customer-Supplier | Partnership |
+| BC-MAFWR-APPROVAL | BC-REG | Customer-Supplier | Partnership |
 | BC-INSPECT | BC-REG | Customer-Supplier | Partnership |
 | BC-BILLING | BC-REG | Customer-Supplier | Conformist |
 | BC-IDENTITY | BC-REG | Customer-Supplier | ACL |
@@ -240,7 +321,7 @@ ACL = Anti-Corruption Layer
 | BC-REG | BC-MONITOR | Customer-Supplier | Partnership |
 | BC-REG | BC-AUDIT | Published Language | Event-driven |
 | BC-BILLING | BC-AUDIT | Published Language | Event-driven |
-| BC-APPROVAL | BC-AUDIT | Published Language | Event-driven |
+| BC-MAFWR-APPROVAL | BC-AUDIT | Published Language | Event-driven |
 
 ---
 
@@ -253,8 +334,8 @@ Contexts that evolve together with mutual dependencies.
 ```
 ┌────────────────────┐         ┌────────────────────┐
 │                    │ ◄─────► │                    │
-│   BC-REG           │         │   BC-APPROVAL      │
-│   (Registration)   │  Sync   │   (Approvals)      │
+│   BC-REG           │         │  BC-MAFWR-APPROVAL │
+│   (Registration)   │  Sync   │  (MAFWR Approval)  │
 │                    │         │                    │
 └────────────────────┘         └────────────────────┘
 
@@ -265,7 +346,7 @@ Characteristics:
 ```
 
 **Applies to:**
-- BC-REG ↔ BC-APPROVAL (MAFWR workflow)
+- BC-REG ↔ BC-MAFWR-APPROVAL (MAFWR workflow)
 - BC-REG ↔ BC-INSPECT (Inspection workflow)
 - BC-REG ↔ BC-MONITOR (Post-issuance monitoring)
 
@@ -338,7 +419,7 @@ Characteristics:
 - Invest Easy → BC-ELIGIBLE
 - Bayan Customs → BC-CUSTOMS
 - Payment Gateway → BC-BILLING
-- MAFWR → BC-APPROVAL
+- MAFWR → BC-MAFWR-APPROVAL
 - Inspection Entity → BC-INSPECT
 
 ### 5.5 Published Language
@@ -376,7 +457,7 @@ Characteristics:
 | **Registration Team** | BC-REG, BC-VESSEL | Core registration workflow, vessel management |
 | **Applicant Team** | BC-APPLICANT, BC-IDENTITY, BC-ELIGIBLE | User management, authentication, eligibility |
 | **Compliance Team** | BC-DOCS, BC-POLICY, BC-AUDIT | Document management, policy rules, audit |
-| **External Integration Team** | BC-APPROVAL, BC-INSPECT, BC-CUSTOMS | External authority integrations |
+| **External Integration Team** | BC-MAFWR-APPROVAL, BC-INSPECT, BC-CUSTOMS | External authority integrations |
 | **Finance Team** | BC-BILLING, BC-MONITOR | Billing, payments, post-issuance monitoring |
 | **Platform Team** | BC-NOTIFY | Notification infrastructure |
 
@@ -419,7 +500,7 @@ Characteristics:
 | BC-APPLICANT | ApplicantProfile, AgentRepresentation | Identity reference |
 | BC-POLICY | PolicyRules, Thresholds, DMN tables | — |
 | BC-DOCS | DocumentRequirements, UploadedDocuments | — |
-| BC-APPROVAL | ApprovalRequest, ApprovalDecision | RequestReference |
+| BC-MAFWR-APPROVAL | MAFWRApprovalRequest, ApprovalDecision | RequestReference |
 | BC-INSPECT | InspectionRequest, InspectionResult | VesselReference, RequestReference |
 | BC-BILLING | Invoice, Payment, Penalty | RequestReference |
 | BC-MONITOR | ReminderSchedule, OverdueRecord | CertificateReference |
@@ -455,7 +536,7 @@ Characteristics:
 
 | Term (EN) | Term (AR) | Context | Definition |
 |-----------|-----------|---------|------------|
-| Approval | موافقة | BC-APPROVAL | Authorization from external authority |
+| Approval | موافقة | BC-MAFWR-APPROVAL | Authorization from MAFWR for fishing vessels |
 | Inspection | معاينة | BC-INSPECT | Physical examination of vessel |
 | Clearance | إفراج جمركي | BC-CUSTOMS | Customs release for imported vessel |
 | Penalty | غرامة | BC-BILLING | Financial charge for rule violation |
@@ -471,16 +552,17 @@ Characteristics:
 | BC-APPLICANT | CAP-03 |
 | BC-IDENTITY | CAP-02 |
 | BC-ELIGIBLE | CAP-04, CAP-05 |
-| BC-POLICY | CAP-07, CAP-08, CAP-14, CAP-16 |
+| BC-POLICY | CAP-07, CAP-08, CAP-10, CAP-14, CAP-16 (Decision APIs) |
+| BC-MASTERDATA | Reference data for SET-01 to SET-06 (Lookup Tables) |
+| BC-CONFIG | Process configurations CONF-01 to CONF-04 (Thresholds) |
 | BC-DOCS | CAP-11, CAP-12 |
-| BC-APPROVAL | CAP-13 |
+| BC-MAFWR-APPROVAL | CAP-13 |
 | BC-INSPECT | CAP-15 |
 | BC-CUSTOMS | CAP-17 |
-| BC-BILLING | CAP-10, CAP-18, CAP-20, CAP-21 |
+| BC-BILLING | CAP-18, CAP-20, CAP-21 (Invoicing, NOT calculation) |
 | BC-MONITOR | CAP-24, CAP-25 |
 | BC-NOTIFY | CAP-23 |
 | BC-AUDIT | CAP-26 |
-| BC-CONFIG | Configuration management (REG-001-SET-xx, REG-001-CONF-xx) |
 
 ---
 
@@ -499,3 +581,6 @@ Characteristics:
 |---------|------|--------|---------|
 | 1.0 | 2026-01-08 | Solution Architect | Initial context map |
 | 1.1 | 2026-01-08 | Solution Architect | Added D14-Configuration domain; Added BC-CONFIG bounded context |
+| 1.2 | 2026-01-08 | Solution Architect | Renamed BC-APPROVAL to BC-MAFWR-APPROVAL for clearer MAFWR context identification |
+| 1.3 | 2026-01-08 | Solution Architect | Added BC-MASTERDATA for reference data; Refined BC-POLICY for decision-only; Updated BC-BILLING (invoicing only, not calculation); Three-tier separation: Policy/MasterData/Config |
+| 1.4 | 2026-01-08 | Solution Architect | **DOCX-driven revision:** Merged BC-POLICY + BC-CONFIG → BC-REGISTRATION-POLICY. CONF-xx are inputs to DMN rules (not separate service). Simplified to two-tier architecture: BC-REGISTRATION-POLICY + BC-MASTERDATA. Removed D14, D16; Updated D05 to include config |

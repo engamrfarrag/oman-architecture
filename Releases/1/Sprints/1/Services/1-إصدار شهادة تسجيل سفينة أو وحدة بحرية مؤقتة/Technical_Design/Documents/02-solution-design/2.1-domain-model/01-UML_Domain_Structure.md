@@ -867,72 +867,317 @@ Domain events capture significant state changes that other services/domains may 
 
 ---
 
-## 9. Configuration Aggregate
+## 9. Policy & Configuration Architecture
 
-The Configuration aggregate manages all configurable settings and policies referenced from the DOCX source.
+Based on analysis of the source DOCX (إصدار شهادة تسجيل سفينة أو وحدة بحرية مؤقتة.docx), the domain model uses a **two-tier** architecture:
 
-### 9.1 Configuration Aggregate Root
+1. **BC-REGISTRATION-POLICY** — Combines DMN decisions + configurable thresholds (CONF-xx are inputs to DMN)
+2. **BC-MASTERDATA** — Reference data and lookup tables (SET-xx)
+
+**Rationale for merging Policy + Config:**
+- CONF-xx codes are **inputs to DMN rules**, not separate decisions
+- Only 4 configurations (CONF-01 to CONF-04) — doesn't justify a separate service
+- DOCX treats them as "إعدادات الدورة" (process settings), part of policy context
+- Simpler architecture with fewer inter-service calls
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    POLICY & CONFIGURATION ARCHITECTURE                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │                 DOMAIN/PROCESS SERVICES                          │   │
+│   │  (RegistrationRequest, VesselProfile, Invoice, etc.)            │   │
+│   │                  ↓ calls (never owns rules)                      │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                           │
+│                              ▼                                           │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │            BC-REGISTRATION-POLICY (Section 9.1)                  │   │
+│   │  - DMN Engine & Rule Evaluation                                  │   │
+│   │  - Policy Configurations (CONF-01 to CONF-04)                    │   │
+│   │  - Policy Versioning                                             │   │
+│   │                  ↓ reads (lookup only)                           │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                           │
+│                              ▼                                           │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │               BC-MASTERDATA (Section 9.2)                        │   │
+│   │  - Reference Codes (SET-01 to SET-06)                            │   │
+│   │  - Lookup Tables                                                 │   │
+│   │  - Static Categories                                             │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### 9.1 Registration Policy Aggregate (BC-REGISTRATION-POLICY)
+
+The Registration Policy aggregate manages DMN rule evaluation, decision logic, AND configurable thresholds/timing rules. Domain services call Policy Service for all decisions—they MUST NOT implement decision logic locally.
+
+#### 9.1.1 Registration Policy Aggregate Root
 
 ```
 <<Aggregate Root>>
-ServiceConfiguration
-├── configurationId: ConfigurationId
+RegistrationPolicy
+├── policyId: RegistrationPolicyId
 ├── serviceCode: String (e.g., "REG-001")
-├── version: Integer
+├── version: VersionInfo (VO)
+├── decisions: List<PolicyDecision>
+├── configurations: List<PolicyConfiguration>
+├── status: PolicyStatus
 ├── effectiveFrom: Date
 ├── effectiveTo: Date (nullable)
-├── masterDataSettings: List<MasterDataSetting>
-├── processConfigurations: List<ProcessConfiguration>
-├── status: ConfigurationStatus
 ├── createdAt: DateTime
 ├── updatedAt: DateTime
 └── createdBy: String
 ```
 
-### 9.2 Master Data Settings (REG-001-SET-xx)
+#### 9.1.2 Policy Decision Entity
 
-| Setting Code | Description | Data Type | Reference |
-|--------------|-------------|-----------|-----------|
-| REG-001-SET-01 | نوع السفينة / الوحدة البحرية (Vessel Types) | Lookup Table | Vessel category dropdown |
-| REG-001-SET-02 | مادة البناء (Build Materials) | Lookup Table | Build material dropdown |
-| REG-001-SET-03 | الموانئ العمانية (Omani Ports) | Lookup Table | Registration/Home port dropdown |
-| REG-001-SET-04 | نوع الاستخدام (Activity Types) | Lookup Table | Activity type dropdown |
-| REG-001-SET-05 | الأنشطة التجارية المؤهلة (Eligible CR Activities) | Lookup Table | Company eligibility check |
-| REG-001-SET-06 | مصادر التملك (Acquisition Paths) | Lookup Table | How vessel was acquired |
+```
+<<Entity>>
+PolicyDecision
+├── decisionId: PolicyDecisionId
+├── decisionKey: String (e.g., "fee-calculation", "vessel-age-validation")
+├── dmnReference: DmnReference (VO)
+├── inputSchema: JsonSchema
+├── outputSchema: JsonSchema
+├── isActive: Boolean
+└── description: LocalizedText (VO)
+```
 
-### 9.3 Process Configurations (REG-001-CONF-xx)
+#### 9.1.3 Policy Configuration Entity
 
-| Config Code | Description | Data Type | Used By |
-|-------------|-------------|-----------|---------|
-| REG-001-CONF-01 | الحد الأقصى لعمر السفينة حسب مادة البناء | Decision Table | reg001-vessel-age-validation.dmn |
-| REG-001-CONF-02 | الحد الأعلى لحمولة سفينة الصيد | Threshold | MAFWR requirement check |
-| REG-001-CONF-03 | فترة صلاحية الشهادة المؤقتة | Duration (6 months) | Certificate validity |
-| REG-001-CONF-04 | مدة حجز الاسم | Duration (30 days) | Name reservation expiry |
+```
+<<Entity>>
+PolicyConfiguration
+├── configId: PolicyConfigurationId
+├── configCode: String (e.g., "REG-001-CONF-01")
+├── configNameAr: String
+├── configNameEn: String
+├── configType: PolicyConfigType
+├── value: ConfigValue (VO)
+├── dmnReference: String (nullable, if used by DMN)
+├── isActive: Boolean
+└── validFrom: Date
+```
 
-### 9.4 Configuration Entity: MasterDataSetting
+#### 9.1.4 DMN Reference Value Object
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `settingId` | SettingId | Unique identifier |
-| `settingCode` | String | e.g., "REG-001-SET-01" |
-| `settingNameAr` | String | Arabic name |
-| `settingNameEn` | String | English name |
-| `values` | List<SettingValue> | Configured values |
-| `isActive` | Boolean | Active status |
-| `effectiveFrom` | Date | Start date |
-| `effectiveTo` | Date | End date (nullable) |
+```
+<<Value Object>>
+DmnReference
+├── dmnFileId: String
+├── dmnFileName: String (e.g., "reg001-fee-calculation.dmn")
+├── decisionTableId: String
+├── versionTag: String (e.g., "v1.2")
+└── deploymentId: String
+```
 
-### 9.5 Configuration Entity: ProcessConfiguration
+#### 9.1.5 Config Value Objects
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `configId` | ConfigId | Unique identifier |
-| `configCode` | String | e.g., "REG-001-CONF-01" |
-| `configNameAr` | String | Arabic name |
-| `configNameEn` | String | English name |
-| `value` | ConfigValue (VO) | Configured value (number, duration, threshold) |
-| `dmnReference` | String | Referenced DMN file (if applicable) |
-| `isActive` | Boolean | Active status |
+```
+<<Value Object>>
+ConfigValue
+├── valueType: ConfigValueType (THRESHOLD, DURATION, FLAG, TABLE)
+├── numericValue: BigDecimal (nullable)
+├── durationValue: Duration (nullable)
+├── booleanValue: Boolean (nullable)
+├── tableValue: List<Map<String, Object>> (nullable)
+└── unit: String (nullable)
+
+<<Value Object>>
+Duration
+├── value: Integer
+├── unit: DurationUnit
+└── toJavaDuration(): java.time.Duration
+
+<<Enumeration>>
+DurationUnit:
+  - HOURS
+  - DAYS
+  - WEEKS
+  - MONTHS
+  - YEARS
+
+<<Enumeration>>
+PolicyConfigType:
+  - THRESHOLD          # Numeric limit (e.g., max age, max tonnage)
+  - DURATION           # Time period (e.g., validity, reservation)
+  - DECISION_TABLE     # Multi-value table for DMN
+  - BLACKLIST          # Prohibited items list
+  - DOCUMENT_RULES     # Document requirement rules
+```
+
+#### 9.1.6 Policy Decision Types (REG-001)
+
+| Decision Key | DMN File | Purpose | Input Fields | Config Dependencies |
+|--------------|----------|---------|--------------|---------------------|
+| `fee-calculation` | reg001-fee-calculation.dmn | Calculate registration fees | vesselCategory, grossTonnage, length, isNew | SET-06 (fee table) |
+| `vessel-age-validation` | reg001-vessel-age-validation.dmn | Validate vessel age policy | vesselType, buildYear, material | CONF-01 (age limits) |
+| `documents-required` | reg001-documents-required.dmn | Determine required documents | vesselCategory, acquisitionPath, activityType | CONF-01 (doc rules) |
+| `inspection-required` | reg001-inspection-required.dmn | Determine if inspection needed | vesselCategory, vesselAge, isNewBuild, length | — |
+| `mafwr-required` | reg001-mafwr-required.dmn | Determine MAFWR approval need | activityType, vesselCategory, grossTonnage | CONF-02 (tonnage limit) |
+| `customs-required` | reg001-customs-required.dmn | Determine customs clearance need | acquisitionPath, importCountry | — |
+| `penalty-calculation` | reg001-penalty-calculation.dmn | Calculate late penalties | daysOverdue, originalFee | CONF-02 (timing) |
+
+#### 9.1.7 Policy Configurations (REG-001-CONF-xx)
+
+From DOCX "إعدادات الدورة" section:
+
+| Config Code | Description (AR) | Description (EN) | Type | Value | Used By |
+|-------------|------------------|------------------|------|-------|---------|
+| REG-001-CONF-01 | إعداد المستندات | Document requirements by vessel type/activity | DOCUMENT_RULES | See DMN | reg001-documents-required.dmn |
+| REG-001-CONF-02 | إعداد توقيت فرض مخالفة | Penalty timing (30 days from build completion) | DURATION + THRESHOLD | 30 days | Penalty trigger, MAFWR check |
+| REG-001-CONF-03 | إعداد صلاحية الشهادة | Certificate validity period | DURATION | 6 months | Certificate issuance |
+| REG-001-CONF-04 | إعداد السفن المحظورة | Prohibited vessels list | BLACKLIST | Dynamic list | Vessel registration block |
+
+#### 9.1.8 PolicyStatus Enumeration
+
+```
+PolicyStatus:
+  - DRAFT                  # تحت التحضير - Under development
+  - ACTIVE                 # فعّال - Currently in use
+  - SCHEDULED              # مجدول للتفعيل - Scheduled activation
+  - DEPRECATED             # قيد الإيقاف - Scheduled for retirement
+  - RETIRED                # متوقف - No longer used
+```
+
+#### 9.1.9 Policy Domain Events
+
+| Event | Description | Raised When |
+|-------|-------------|-------------|
+| `RegistrationPolicyCreated` | New policy version created | Admin creates policy |
+| `RegistrationPolicyActivated` | Policy activated | Policy goes live |
+| `PolicyDecisionAdded` | New DMN decision registered | New DMN rule added |
+| `PolicyDecisionUpdated` | DMN decision modified | DMN rule updated |
+| `PolicyConfigurationUpdated` | Configuration changed | Threshold/timing modified |
+| `PolicyEvaluationCompleted` | Decision evaluated | DMN rule executed |
+| `PolicyEvaluationFailed` | Decision evaluation failed | DMN execution error |
+| `ProhibitedVesselAdded` | Vessel added to blacklist | Admin blocks vessel |
+| `ProhibitedVesselRemoved` | Vessel removed from blacklist | Admin unblocks vessel |
+
+---
+
+### 9.2 Master Data Aggregate (BC-MASTERDATA)
+
+The Master Data aggregate manages reference codes, lookup tables, and static categories. This is READ-ONLY reference data used by Policy and Domain services.
+
+#### 9.2.1 Master Data Aggregate Root
+
+```
+<<Aggregate Root>>
+MasterDataCategory
+├── categoryId: MasterDataCategoryId
+├── categoryCode: String (e.g., "REG-001-SET-01")
+├── categoryNameAr: String
+├── categoryNameEn: String
+├── serviceCode: String (e.g., "REG-001")
+├── items: List<MasterDataItem>
+├── isActive: Boolean
+├── effectiveFrom: Date
+├── effectiveTo: Date (nullable)
+├── version: Integer
+├── createdAt: DateTime
+├── updatedAt: DateTime
+└── createdBy: String
+```
+
+#### 9.2.2 Master Data Item Entity
+
+```
+<<Entity>>
+MasterDataItem
+├── itemId: MasterDataItemId
+├── itemCode: String (e.g., "CARGO_SHIP", "STEEL")
+├── itemNameAr: String
+├── itemNameEn: String
+├── sortOrder: Integer
+├── isActive: Boolean
+├── attributes: Map<String, Object> (extensible properties)
+├── parentItemId: MasterDataItemId (nullable, for hierarchical data)
+└── validFrom: Date
+```
+
+#### 9.2.3 Master Data Categories (REG-001-SET-xx)
+
+| Category Code | Description (AR) | Description (EN) | Example Items |
+|---------------|------------------|------------------|---------------|
+| REG-001-SET-01 | نوع السفينة / الوحدة البحرية | Vessel Types | CARGO_SHIP, FISHING_VESSEL, YACHT, MARITIME_UNIT |
+| REG-001-SET-02 | مادة البناء | Build Materials | STEEL, ALUMINUM, FIBERGLASS, WOOD |
+| REG-001-SET-03 | الموانئ العمانية | Omani Ports | PORT_SULTAN_QABOOS, PORT_SALALAH, PORT_SOHAR, PORT_DUQM |
+| REG-001-SET-04 | نوع الاستخدام | Activity Types | COMMERCIAL_TRANSPORT, FISHING, TOURISM, PRIVATE |
+| REG-001-SET-05 | الأنشطة التجارية المؤهلة | Eligible CR Activities | MARITIME_TRANSPORT, FISHING_COMPANY, TOURISM_OPERATOR |
+| REG-001-SET-06 | مصادر التملك | Acquisition Paths | LOCAL_BUILD, IMPORT, TRANSFER, INHERITANCE |
+
+#### 9.2.4 Master Data Value Objects
+
+```
+<<Value Object>>
+LocalizedName
+├── nameAr: String
+├── nameEn: String
+└── toString(locale: Locale): String
+
+<<Value Object>>
+MasterDataReference
+├── categoryCode: String
+├── itemCode: String
+├── displayName: LocalizedName
+└── isValid(): Boolean
+```
+
+#### 9.2.5 Master Data Domain Events
+
+| Event | Description | Raised When |
+|-------|-------------|-------------|
+| `MasterDataCategoryCreated` | New category created | Admin adds new category |
+| `MasterDataCategoryUpdated` | Category metadata updated | Admin modifies category |
+| `MasterDataItemAdded` | New item added to category | Admin adds new lookup value |
+| `MasterDataItemUpdated` | Item details updated | Admin modifies lookup value |
+| `MasterDataItemDeactivated` | Item marked inactive | Item no longer valid |
+| `MasterDataCacheRefreshed` | Cache invalidated | Data changed, consumers notified |
+
+---
+
+### 9.3 Policy Separation Rules (Enforcement)
+
+| # | Rule | Violation Example |
+|---|------|-------------------|
+| 1 | **No DMN duplication** | Same fee logic in two services |
+| 2 | **No policy logic in domain services** | RegistrationRequest calculates fees |
+| 3 | **No master data in policy service** | Policy service stores vessel categories |
+| 4 | **DMN changes ≠ service redeploy** | DMN embedded in service JAR |
+| 5 | **Config is part of policy context** | Separate config service for 4 settings |
+| 6 | **Master data is READ-ONLY for consumers** | Domain service modifies lookup tables |
+
+### 9.4 Service Interaction Pattern
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     DECISION FLOW EXAMPLE                                  │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│   RegistrationRequest (Domain)                                            │
+│       │                                                                   │
+│       ├──► RegistrationPolicyService.evaluateDecision("fee-calculation")  │
+│       │       │                                                           │
+│       │       ├──► Load CONF-xx (internal to policy service)              │
+│       │       │       └──► Returns: thresholds for DMN                    │
+│       │       │                                                           │
+│       │       ├──► MasterDataService.lookup("REG-001-SET-01", code)       │
+│       │       │       └──► Returns: vessel category details               │
+│       │       │                                                           │
+│       │       └──► DMN Engine: reg001-fee-calculation.dmn                 │
+│       │               └──► Returns: calculated fee                        │
+│       │                                                                   │
+│       └──► Invoice.addLineItem(calculatedFee)                             │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Difference from Three-Tier:** Configuration (CONF-xx) is loaded internally by the Policy Service, not via separate service call.
 
 ---
 
@@ -985,18 +1230,27 @@ DocumentsBundle
 
 ### 11.1 Data Ownership
 
-| Aggregate | Owns | Does NOT Own |
-|-----------|------|--------------|
-| RegistrationRequest | Request lifecycle, snapshots, approvals, payment tracking | Master vessel data, master applicant data |
-| VesselProfile | Vessel master data, name, dimensions | Registration requests |
-| ApplicantProfile | Applicant master data, contact info | Registration requests |
-| Invoice | Fee line items, payment status | Request details |
-| TemporaryCertificate | Certificate metadata, validity | Registration process state |
-| ServiceConfiguration | Master data settings, process configurations | Runtime request data |
-| PostIssuanceMonitor | Monitoring lifecycle, reminders, overdue penalties | Certificate data, permanent registration |
-| InspectionRequest | Inspection lifecycle, reports, outcomes | Vessel data, registration request details |
+| Aggregate | Bounded Context | Owns | Does NOT Own |
+|-----------|-----------------|------|--------------|
+| RegistrationRequest | BC-REGISTRATION | Request lifecycle, snapshots, approvals, payment tracking | Master vessel data, master applicant data, fee calculation |
+| VesselProfile | BC-VESSEL | Vessel master data, name, dimensions | Registration requests, age validation rules |
+| ApplicantProfile | BC-APPLICANT | Applicant master data, contact info | Registration requests, eligibility rules |
+| Invoice | BC-BILLING | Fee line items, payment status | Request details, fee calculation logic |
+| TemporaryCertificate | BC-CERTIFICATE | Certificate metadata, validity | Registration process state |
+| RegistrationPolicy | BC-REGISTRATION-POLICY | DMN rules, decision evaluation, policy configurations (CONF-xx), policy versioning | Master data, process orchestration |
+| MasterDataCategory | BC-MASTERDATA | Reference codes (SET-xx), lookup tables, static categories | Decision logic, business rules, policies |
+| PostIssuanceMonitor | BC-MONITORING | Monitoring lifecycle, reminders, overdue penalties | Certificate data, permanent registration |
+| InspectionRequest | BC-INSPECTION | Inspection lifecycle, reports, outcomes | Vessel data, registration request details |
 
-### 11.2 Invariant Enforcement
+### 11.2 Service Responsibility Boundaries
+
+| Service Type | Owns | Does NOT Own |
+|--------------|------|--------------|
+| **Registration Policy Service** | DMN files, rule evaluation, configurable policies (CONF-xx), policy versioning | Master data, process orchestration, external integrations |
+| **Master Data Service** | Reference codes (SET-xx), lookup tables, static categories | Decision logic, business rules, policies |
+| **Domain/Process Service** | Workflow orchestration, state transitions, domain aggregates | Fee calculation, validation rules, eligibility decisions |
+
+### 11.3 Invariant Enforcement
 
 | Aggregate | Key Invariants |
 |-----------|----------------|
@@ -1005,7 +1259,8 @@ DocumentsBundle
 | ApplicantProfile | Applicant must be Omani citizen/resident; Company must have valid CR; activity must be eligible |
 | Invoice | Line items must sum to total; cannot modify after payment |
 | TemporaryCertificate | Expiry must be after issuance; validity is 6 months (REG-001-CONF-03); status transitions are irreversible |
-| ServiceConfiguration | Settings must be versioned; only one active version per setting code |
+| RegistrationPolicy | One active version per policy; decisions must have valid DMN references; configurations must be versioned |
+| MasterDataCategory | Items must be unique within category; only one active version per category code |
 
 ---
 
@@ -1087,3 +1342,6 @@ DocumentsBundle
 | 1.0 | 2026-01-08 | Solution Architect | Initial domain model structure |
 | 1.1 | 2026-01-08 | Solution Architect | Added Configuration aggregate, ImportDocument entity, IndividualProfile, CompanyProfile, AgentRepresentation entities; Added NationalityType, VerificationStatus, CRStatus, AgentType, ConfigurationStatus enums; Enhanced traceability with Config and DMN mappings |
 | 1.2 | 2026-01-08 | Solution Architect | FR-driven updates: Added PostIssuanceMonitor aggregate (FR-SP10), InspectionRequest aggregate (FR-SP06), ReminderSchedule, PenaltyRecord, InspectionReport entities; Added 10 new enumerations (MonitoringState, InspectionStatus, InspectionOutcome, etc.); Added 15+ new domain events; Expanded capability mapping to 26 capabilities |
+| 1.3 | 2026-01-08 | Solution Architect | Renamed BC-APPROVAL to BC-MAFWR-APPROVAL for clearer MAFWR context identification; Context naming alignment with domain model |
+| 1.4 | 2026-01-08 | Solution Architect | Three-Tier Decision Architecture: Added BC-POLICY, BC-MASTERDATA, BC-CONFIG bounded contexts |
+| 1.5 | 2026-01-08 | Solution Architect | **DOCX-driven revision:** Merged BC-POLICY + BC-CONFIG into BC-REGISTRATION-POLICY based on source document analysis. CONF-xx are inputs to DMN rules (not separate service). Kept BC-MASTERDATA separate for SET-xx reference data. Updated aggregates: RegistrationPolicy (combined policy + config), MasterDataCategory; Simplified architecture from three-tier to two-tier |

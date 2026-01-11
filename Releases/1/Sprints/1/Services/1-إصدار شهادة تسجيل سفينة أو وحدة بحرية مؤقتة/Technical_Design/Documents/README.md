@@ -249,9 +249,11 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 ✔ Process & BPMN completed (event-type tags added)  
 ✔ Capabilities mapping completed  
 ✔ Functional requirements completed (entry: `01-business-analysis/1.5-functional-requirements/README.md`)  
+✔ **Security & Access Control completed** (FR-CC01-Security.md + Actors-and-Roles.md updated)  
 ✔ Domain Model completed (UML Structure + Context Map + ACL/SharedKernel)  
-⏳ Architecture (C4 + Integration) pending  
+✔ **Architecture completed** (C4, Capability-to-Service C4, Sequence Diagrams, Integration Architecture)  
 ⏳ Services design pending  
+⏳ Security Architecture (02-solution-design/2.4-cross-cutting/) pending  
 ⏳ Delivery planning pending  
 ⏳ DevOps configuration pending
 
@@ -259,10 +261,11 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 
 ## 9. Next Steps
 
-1. Review Domain Model documents (`02-solution-design/2.1-domain-model/`) with Solution Architects
-2. Generate C4 Architecture and Integration Architecture under `02-solution-design/2.2-architecture/`
-3. Generate Service Decomposition and API Contracts under `02-solution-design/2.3-services/`
-4. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
+1. Review Architecture documents (`02-solution-design/2.2-architecture/`) with Solution Architects
+2. Generate Service Decomposition and API Contracts under `02-solution-design/2.3-services/`
+3. Generate Security Architecture under `02-solution-design/2.4-cross-cutting/`
+4. Generate Data Architecture under `02-solution-design/2.5-data-architecture/`
+5. Confirm proposal content and populate `00-proposal/offer.md` (currently missing)
 
 ---
 
@@ -275,5 +278,7 @@ Located in: `Technical_Design/Resources/processes/reg001/`
 | 1.2 | 2026-01-06 | Copilot | Added Stakeholders & Governance document |
 | 1.3 | 2026-01-06 | Copilot | Added Capabilities mapping documents |
 | 1.4 | 2026-01-08 | Copilot | Added Domain Model (UML Structure, Context Map, ACL/SharedKernel) |
+| 1.5 | 2026-01-09 | Copilot | Updated Security & Access Control (FR-CC01-Security.md, Actors-and-Roles.md) per new BA security standards |
+| 1.6 | 2026-01-11 | Copilot | Added Architecture section (C4 Architecture, Capability-to-Service C4, Sequence Diagrams, Integration Architecture) |
 
 ---

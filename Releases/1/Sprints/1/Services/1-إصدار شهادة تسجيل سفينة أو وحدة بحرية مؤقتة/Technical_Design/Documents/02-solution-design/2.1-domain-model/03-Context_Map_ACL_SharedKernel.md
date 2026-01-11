@@ -273,17 +273,17 @@ ClearanceStatusResult:
 **Purpose:** Isolate fishing vessel approval flow from MAFWR API.
 
 ```
-┌─────────────────────┐                ┌─────────────────────┐
-│                     │                │                     │
-│       MAFWR         │   ◄─────────►  │   Approval Adapter  │
-│   (Fishing Auth)    │                │       (ACL)         │
-│                     │                │                     │
+┌─────────────────────┐                ┌─────────────────────────┐
+│                     │                │                         │
+│       MAFWR         │   ◄─────────►  │   MAFWRApproval Adapter │
+│   (Fishing Auth)    │                │         (ACL)           │
+│                     │                │                         │
 └─────────────────────┘                └──────────┬──────────┘
                                                   │
                                                   ▼
                                        ┌─────────────────────┐
                                        │                     │
-                                       │   BC-APPROVAL       │
+                                       │  BC-MAFWR-APPROVAL  │
                                        │  (Internal Model)   │
                                        │                     │
                                        └─────────────────────┘
@@ -301,12 +301,12 @@ ClearanceStatusResult:
 #### Adapter Interface
 
 ```
-ApprovalAdapter:
-  + requestApproval(request: ApprovalRequest): ApprovalInitiationResult
+MAFWRApprovalAdapter:
+  + requestApproval(request: MAFWRApprovalRequest): ApprovalInitiationResult
   + checkApprovalStatus(reference: ApprovalReference): ApprovalStatusResult
   + cancelApprovalRequest(reference: ApprovalReference): CancellationResult
 
-ApprovalRequest:
+MAFWRApprovalRequest:
   - requestId: RequestId
   - applicantId: ApplicantId
   - vesselDetails: VesselSummary
@@ -605,28 +605,30 @@ Event Naming Convention:
 
 ## 5. Open Host Services (OHS)
 
-### 5.1 Policy Service (BC-POLICY)
+### 5.1 Registration Policy Service (BC-REGISTRATION-POLICY)
 
-**Purpose:** Provide DMN decisions and policy rules to consuming contexts.
+**Purpose:** Provide DMN decisions, policy rules, AND policy configurations (CONF-xx) to consuming contexts.
+
+> **Note:** This service merges Policy + Config based on DOCX analysis. CONF-xx are inputs to DMN rules, loaded internally.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    POLICY SERVICE (OHS)                                              │
+│                              REGISTRATION POLICY SERVICE (OHS)                                       │
 ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                                      │
-│   Consumers: BC-REG, BC-VESSEL, BC-DOCS, BC-BILLING, BC-APPROVAL, BC-INSPECT, BC-CUSTOMS            │
+│   Consumers: BC-REG, BC-VESSEL, BC-DOCS, BC-BILLING, BC-MAFWR-APPROVAL, BC-INSPECT, BC-CUSTOMS    │
 │                                                                                                      │
 │   ┌─────────────────────────────────────────────────────────────────────────────────────────────┐   │
-│   │                                   PUBLIC API                                                 │   │
+│   │                               DECISION APIs (DMN-backed)                                     │   │
 │   ├─────────────────────────────────────────────────────────────────────────────────────────────┤   │
 │   │                                                                                              │   │
 │   │   /api/v1/policy/vessel-age-validation                                                      │   │
-│   │     POST - Validate vessel age against policy                                               │   │
+│   │     POST - Validate vessel age against policy (uses CONF-01 internally)                     │   │
 │   │     Input: { vesselCategory, buildYear, buildMaterial }                                     │   │
 │   │     Output: { isValid, maxAllowedAge, message }                                             │   │
 │   │                                                                                              │   │
 │   │   /api/v1/policy/documents-required                                                         │   │
-│   │     POST - Get required documents for request                                               │   │
+│   │     POST - Get required documents for request (uses CONF-01 internally)                     │   │
 │   │     Input: { vesselCategory, acquisitionPath, activityType }                                │   │
 │   │     Output: { documents: [{ code, name, mandatory }] }                                      │   │
 │   │                                                                                              │   │
@@ -636,7 +638,7 @@ Event Naming Convention:
 │   │     Output: { baseFee, tonnageFee, lengthFee, totalFee }                                    │   │
 │   │                                                                                              │   │
 │   │   /api/v1/policy/penalty-calculation                                                        │   │
-│   │     POST - Calculate applicable penalties                                                   │   │
+│   │     POST - Calculate applicable penalties (uses CONF-02 timing internally)                  │   │
 │   │     Input: { constructionEndDate, submissionDate }                                          │   │
 │   │     Output: { penaltyApplies, amount, reason }                                              │   │
 │   │                                                                                              │   │
@@ -646,8 +648,8 @@ Event Naming Convention:
 │   │     Output: { isRequired, inspectionType, reason }                                          │   │
 │   │                                                                                              │   │
 │   │   /api/v1/policy/mafwr-required                                                             │   │
-│   │     POST - Determine if MAFWR approval is required                                          │   │
-│   │     Input: { vesselCategory, activityType }                                                 │   │
+│   │     POST - Determine if MAFWR approval is required (uses CONF-02 tonnage limit)             │   │
+│   │     Input: { vesselCategory, activityType, grossTonnage }                                   │   │
 │   │     Output: { isRequired, reason }                                                          │   │
 │   │                                                                                              │   │
 │   │   /api/v1/policy/customs-required                                                           │   │
@@ -655,15 +657,84 @@ Event Naming Convention:
 │   │     Input: { acquisitionPath, vesselOrigin }                                                │   │
 │   │     Output: { isRequired, reason }                                                          │   │
 │   │                                                                                              │   │
+│   │   /api/v1/policy/prohibited-vessel-check                                                    │   │
+│   │     POST - Check if vessel is on prohibited list (uses CONF-04 blacklist)                   │   │
+│   │     Input: { vesselIdentifier, vesselName, imoNumber }                                      │   │
+│   │     Output: { isProhibited, reason }                                                        │   │
+│   │                                                                                              │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────────────┘   │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                            CONFIGURATION APIs (Read-Only)                                    │   │
+│   ├─────────────────────────────────────────────────────────────────────────────────────────────┤   │
+│   │                                                                                              │   │
+│   │   /api/v1/policy/config/certificate-validity                                                │   │
+│   │     GET - Get certificate validity period (CONF-03)                                         │   │
+│   │     Output: { duration: 6, unit: "MONTHS" }                                                 │   │
+│   │                                                                                              │   │
+│   │   /api/v1/policy/config/name-reservation-duration                                           │   │
+│   │     GET - Get name reservation duration (CONF-04)                                           │   │
+│   │     Output: { duration: 30, unit: "DAYS" }                                                  │   │
+│   │                                                                                              │   │
 │   └─────────────────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                                      │
-│   Implementation: Flowable DMN Engine                                                               │
+│   Implementation: Flowable DMN Engine + Internal Config Store                                       │
 │   DMN Tables: reg001-*.dmn                                                                          │
 │                                                                                                      │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Notification Service (BC-NOTIFY)
+### 5.2 Master Data Service (BC-MASTERDATA)
+
+**Purpose:** Provide reference data and lookup tables to all consuming contexts.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                  MASTER DATA SERVICE (OHS)                                           │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│   Consumers: BC-REG, BC-VESSEL, BC-REGISTRATION-POLICY, BC-DOCS, BC-BILLING, BC-INSPECT, UI Apps   │
+│                                                                                                      │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                   PUBLIC API                                                 │   │
+│   ├─────────────────────────────────────────────────────────────────────────────────────────────┤   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/vessel-types                                                           │   │
+│   │     GET - List all vessel types (SET-01)                                                    │   │
+│   │     Output: { items: [{ code, nameAr, nameEn, isActive }] }                                 │   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/build-materials                                                        │   │
+│   │     GET - List all build materials (SET-02)                                                 │   │
+│   │     Output: { items: [{ code, nameAr, nameEn, isActive }] }                                 │   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/ports                                                                  │   │
+│   │     GET - List Omani ports (SET-03)                                                         │   │
+│   │     Output: { items: [{ code, nameAr, nameEn, region, isActive }] }                         │   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/activity-types                                                         │   │
+│   │     GET - List activity types (SET-04)                                                      │   │
+│   │     Output: { items: [{ code, nameAr, nameEn, isActive }] }                                 │   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/eligible-activities                                                    │   │
+│   │     GET - List eligible CR activities (SET-05)                                              │   │
+│   │     Output: { items: [{ code, description, vesselTypes }] }                                 │   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/acquisition-paths                                                      │   │
+│   │     GET - List acquisition sources (SET-06)                                                 │   │
+│   │     Output: { items: [{ code, nameAr, nameEn }] }                                           │   │
+│   │                                                                                              │   │
+│   │   /api/v1/masterdata/{category}/{code}                                                      │   │
+│   │     GET - Get single lookup item by code                                                    │   │
+│   │     Output: { code, nameAr, nameEn, isActive, metadata }                                    │   │
+│   │                                                                                              │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                                      │
+│   Data Source: Cached database with admin CRUD operations                                           │
+│   Change Frequency: Low (monthly/quarterly)                                                         │
+│                                                                                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.3 Notification Service (BC-NOTIFY)
 
 **Purpose:** Provide multi-channel notification delivery to all contexts.
 
@@ -672,7 +743,7 @@ Event Naming Convention:
 │                                  NOTIFICATION SERVICE (OHS)                                          │
 ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                                      │
-│   Consumers: BC-REG, BC-BILLING, BC-MONITOR, BC-APPROVAL, BC-INSPECT                                │
+│   Consumers: BC-REG, BC-BILLING, BC-MONITOR, BC-MAFWR-APPROVAL, BC-INSPECT                        │
 │                                                                                                      │
 │   ┌─────────────────────────────────────────────────────────────────────────────────────────────┐   │
 │   │                                   PUBLIC API                                                 │   │
@@ -707,8 +778,8 @@ Event Naming Convention:
 | `RegistrationRequestCreated` | BC-REG | BC-AUDIT | Track request initiation |
 | `RegistrationRequestSubmitted` | BC-REG | BC-NOTIFY, BC-AUDIT | Trigger submission notification |
 | `DocumentsCompleted` | BC-DOCS | BC-REG, BC-AUDIT | Signal document completeness |
-| `ApprovalRequested` | BC-REG | BC-APPROVAL, BC-AUDIT | Request external approval |
-| `ApprovalDecisionReceived` | BC-APPROVAL | BC-REG, BC-NOTIFY, BC-AUDIT | Notify approval outcome |
+| `ApprovalRequested` | BC-REG | BC-MAFWR-APPROVAL, BC-AUDIT | Request MAFWR approval for fishing vessels |
+| `ApprovalDecisionReceived` | BC-MAFWR-APPROVAL | BC-REG, BC-NOTIFY, BC-AUDIT | Notify MAFWR approval outcome |
 | `InspectionRequested` | BC-REG | BC-INSPECT, BC-AUDIT | Request inspection |
 | `InspectionCompleted` | BC-INSPECT | BC-REG, BC-NOTIFY, BC-AUDIT | Notify inspection result |
 | `PaymentInitiated` | BC-REG | BC-BILLING, BC-AUDIT | Start payment process |
@@ -765,11 +836,12 @@ Event Naming Convention:
 |-------------|---------|------------------|--------------|
 | ROP PKI → BC-IDENTITY | ACL | IdentityAdapter | No |
 | Invest Easy → BC-ELIGIBLE | ACL | EligibilityAdapter | No |
-| MAFWR → BC-APPROVAL | ACL | ApprovalAdapter | Yes (callbacks) |
+| MAFWR → BC-MAFWR-APPROVAL | ACL | MAFWRApprovalAdapter | Yes (callbacks) |
 | Bayan → BC-CUSTOMS | ACL | CustomsAdapter | Yes (callbacks) |
 | Payment Gateway → BC-BILLING | ACL | PaymentAdapter | Yes (webhooks) |
 | Inspection Entity → BC-INSPECT | ACL | InspectionAdapter | Yes (callbacks) |
-| BC-POLICY → All consumers | OHS | REST API | No |
+| BC-REGISTRATION-POLICY → All consumers | OHS | REST API (Decision + Config APIs) | No |
+| BC-MASTERDATA → All consumers | OHS | REST API (Lookup APIs) | No |
 | BC-NOTIFY → All consumers | OHS | REST API + Events | Yes |
 | BC-* → BC-AUDIT | Published Language | Event Bus | Yes |
 
@@ -788,3 +860,6 @@ Event Naming Convention:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-08 | Solution Architect | Initial ACL and Shared Kernel documentation |
+| 1.1 | 2026-01-08 | Solution Architect | Renamed BC-APPROVAL to BC-MAFWR-APPROVAL; Updated ApprovalAdapter to MAFWRApprovalAdapter |
+| 1.2 | 2026-01-08 | Solution Architect | Added BC-MASTERDATA OHS (Section 5.2); Added BC-CONFIG OHS (Section 5.3); Updated Integration Patterns Summary |
+| 1.3 | 2026-01-08 | Solution Architect | DOCX-driven revision: Merged BC-POLICY + BC-CONFIG → BC-REGISTRATION-POLICY; Removed Section 5.3 (Config now part of Policy OHS); Renumbered Notification Service to 5.3; Updated Integration Patterns Summary |
